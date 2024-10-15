@@ -1,45 +1,18 @@
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
+EmployeeSearch employeeSearchReq = new EmployeeSearch();
+            employeeSearchReq.setQuery(new Query());
+            employeeSearchReq.getQuery().setImpersonate("V841274");
+            employeeSearchReq.getQuery().setBulk(new Bulk());
+            employeeSearchReq.getQuery().getBulk().setField(CommonConstants.ALL);
+            employeeSearchReq.getQuery().getBulk().setValues(searchQuery);
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+            log.info("Employee Search request: {}", employeeSearchReq);
 
-public class CmlCardPaymentInfoServiceImplTest {
+            HttpEntity<EmployeeSearch> httpEntity = new HttpEntity<>(employeeSearchReq, httpHeaders);
 
-    @Mock
-    private KycPaymentInfoRepository kycPaymentInfoRepository;
+            empSearchResponse = empSearchRestTemplate.exchange(url, HttpMethod.POST, httpEntity,
+                    EmployeeSearchResponse.class);
 
-    @InjectMocks
-    private CmlCardPaymentInfoServiceImpl cmlCardPaymentInfoServiceImpl;
 
-    @BeforeEach
-    public void setup() {
-        MockitoAnnotations.initMocks(this);
-    }
-
-    @Test
-    public void testGetRebateAccountInfo_whenExceptionThrown_shouldThrowOnboardingDatabaseException() {
-        String kycId = "12345";
-
-        // Mock repository to throw an exception
-        when(kycPaymentInfoRepository.findRebateDetailsForKycId(Long.parseLong(kycId)))
-                .thenThrow(new RuntimeException("Database error"));
-
-        // Verify that the exception is thrown
-        OnboardingDatabaseException exception = assertThrows(OnboardingDatabaseException.class, () -> {
-            cmlCardPaymentInfoServiceImpl.getRebateAccountInfo(kycId);
-        });
-
-        // Verify the exception message
-        assertEquals("An exception occurred trying to get payment info with kycId: " + kycId, exception.getMessage());
-
-        // Verify that the error code was set in MDC
-        assertEquals("DB_ERROR", exception.getErrorCode());
-    }
-}
 
 
 
