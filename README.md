@@ -1,2 +1,15 @@
-
- "stack_trace": "org.springframework.web.client.HttpClientErrorException$Forbidden: 403 Forbidden: \"<html><body><h1>403 Forbidden</h1><EOL>Request forbidden by administrative rules.<EOL></body></html><EOL>\"\n\tat org.springframework.web.client.HttpClientErrorException.create(HttpClientErrorException.java:109)\n\tat org.springframework.web.client.DefaultResponseErrorHandler.handleError(DefaultResponseErrorHandler.java:183)\n\tat org.springframework.web.client.DefaultResponseErrorHandler.handleError(DefaultResponseErrorHandler.java:137)\n\tat org.springframework.web.client.ResponseErrorHandler.handleError(ResponseErrorHandler.java:63)\n\tat org.springframework.web.client.RestTemplate.handleResponse(RestTemplate.java:915)\n\tat org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:864)\n\tat org.springframework.web.client.RestTemplate.execute(RestTemplate.java:764)\n\tat org.springframework.web.client.RestTemplate.exchange(RestTemplate.java:646)\n\tat net.jpmchase.common.services.service.impl.EmployeeSearchServiceImpl.getEmployeeDetails(EmployeeSearchServiceImpl.java:56)\n\tat net.jpmchase.common.services.controller.EmployeeSearchController.getEmployeeDetails(EmployeeSearchController.java:29)\n\tat java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat 
+{
+  "query": {
+    "impersonate": "string",
+    "criteria": {
+      "field": "_all",
+      "value": "string"
+    },
+    "bulk": {
+      "field": "_all",
+      "values": [
+        "string"
+      ]
+    }
+  }
+}
