@@ -1,3 +1,35 @@
-ObjectMapper objectMapper = new ObjectMapper();
-String jsonRequest = objectMapper.writeValueAsString(employeeSearchReq);
-log.info("Serialized JSON request: {}", jsonRequest);
+@Transactional
+    public List<CmlCardPostResponse> savePaymentRebateAccountsInfo(List<CmlCardPaymentDTO> cmlCardPaymentDTOList, Long kycId) {
+
+        List<CmlCardPostResponse> cmlCardPostResponseList;
+        try {
+            cmlCardPostResponseList = new ArrayList<>();
+
+            String kycIdString = kycId.toString();
+            log.info("CML Card service saving/updating payment rebate accounts info with kycId: {}", kycIdString);
+
+            for (CmlCardPaymentDTO cmlCardPaymentDTO : cmlCardPaymentDTOList) {
+                try {
+                    CmlCardPostResponse cmlCardPostResponse;
+
+                    if(!Objects.isNull(cmlCardPaymentDTO.getId()) && cmlCardPaymentDTO.getId() > 0){
+                        cmlCardPostResponse = updatePaymentInfoV2(cmlCardPaymentDTO, cmlCardPaymentDTO.getId());
+                    } else {
+                        cmlCardPostResponse = savePaymentInfoV2(cmlCardPaymentDTO);
+                    }
+
+                    cmlCardPostResponseList.add(cmlCardPostResponse);
+                } catch (Exception e) {
+                    MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.DATABASE_ERROR);
+                    log.error("An exception occurred trying to save card payment accounts info with kycId: {}", cmlCardPaymentDTO.getKycId(), e);
+                    throw e;
+                }
+            }
+        } catch (Exception e) {
+            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.DATABASE_ERROR);
+            log.error("An exception occurred trying to save card payment accounts info with kycId: {}", kycId, e);
+            throw e;
+        }
+
+        return cmlCardPostResponseList;
+    }
