@@ -1,15 +1,1 @@
-{
-  "query": {
-    "impersonate": "string",
-    "criteria": {
-      "field": "_all",
-      "value": "string"
-    },
-    "bulk": {
-      "field": "_all",
-      "values": [
-        "string"
-      ]
-    }
-  }
-}
+Employee Search request: EmployeeSearch(query=Query(impersonate=null, criteria=null, bulk=Bulk(field=_all, values=[basa])))
