@@ -1,0 +1,9 @@
+   // Create a list of strings
+        List<String> stringList = Arrays.asList("one", "two", "three");
+
+        // Set the headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+
+        // Create the request entity (contains the payload and headers)
+        HttpEntity<List<String>> requestEntity = new HttpEntity<>(stringList, headers);
