@@ -1,0 +1,42 @@
+ @Transactional
+    public CmlCardPostResponse updatePaymentInfoV2(CmlCardPaymentDTO cmlCardPaymentDTO, Long id) {
+        try {
+            CmlCardPostResponse cmlCardPostResponse = new CmlCardPostResponse();
+
+            Long kycId = cmlCardPaymentDTO.getKycId();
+            String kycIdString = kycId.toString();
+            log.info("CML Card services updating payment info with kycId: {}", kycIdString);
+
+            Optional<KYCPaymentInfoEntity> previousKYCPaymentInfoEntity = kycPaymentInfoRepository.findById(id);
+
+            if (previousKYCPaymentInfoEntity.isPresent()) {
+
+                KYCPaymentInfoEntity previousKYCPaymentInfoEntityValue = previousKYCPaymentInfoEntity.get();
+                KYCPaymentInfoEntity newKYCPaymentInfoEntity = CmlCardPaymentInfoEntityToDTOMapper.mapCmlCardPaymentDtoToKYCPaymentInfoEntity(cmlCardPaymentDTO);
+
+                newKYCPaymentInfoEntity.setId(id);
+                newKYCPaymentInfoEntity.setVersion(previousKYCPaymentInfoEntityValue.getVersion());
+
+                kycPaymentInfoRepository.saveAndFlush(newKYCPaymentInfoEntity);
+
+                cmlCardPostResponse.setId(id);
+                cmlCardPostResponse.setStatus(CommonConstants.SUCCESS);
+            } else {
+                log.error("CmlCardPaymentInfoServiceImpl: payment info entity does not exist with kycId: "
+                        + "{}", kycIdString);
+                cmlCardPostResponse.setStatus(CommonConstants.FAILED);
+                throw new OnboardingNotFoundException(UIErrorCode.NOT_FOUND,
+                        "No record found in database for the kycId "
+                                + "provided: "
+                                + kycIdString,
+                        MDC.get(CommonConstants.TRACEID));
+            }
+
+            return cmlCardPostResponse;
+        } catch (Exception e) {
+            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.DATABASE_ERROR);
+            log.error("An exception occurred trying to update payment info with kycId: {}",
+                    cmlCardPaymentDTO.getKycId(), e);
+            throw e;
+        }
+    }
