@@ -1,1 +1,11 @@
 Integrate PERF Script with Jules for PERF Env
+
+
+Hi Harsh,
+
+I would like to share my thoughts on this. AFAIK, we can consider this as low-risk issue in the context of remediation since the reported issue reference was from build process (transitive dependency from package.json) and will not be included in in the final application package/distribution.
+
+So in this case, we generally close the issue with appropriate comments since our application is not vulnerable to this issue.
+
+Thanks,
+Chandra
