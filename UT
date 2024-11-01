@@ -1,42 +1,30 @@
- @Transactional
-    public CmlCardPostResponse updatePaymentInfoV2(CmlCardPaymentDTO cmlCardPaymentDTO, Long id) {
+ 
+@Override
+    public PartySearchResponse getPartySearchResponse(String ecid) {
+        HttpHeaders headers = getOAuthTokenForCommCardService();
+        String baseUrl = commCardBaseUrl;
+        String url = baseUrl + "/api/client/clientSearch?input=" + ecid + "&idpType=&idpId=";
         try {
-            CmlCardPostResponse cmlCardPostResponse = new CmlCardPostResponse();
-
-            Long kycId = cmlCardPaymentDTO.getKycId();
-            String kycIdString = kycId.toString();
-            log.info("CML Card services updating payment info with kycId: {}", kycIdString);
-
-            Optional<KYCPaymentInfoEntity> previousKYCPaymentInfoEntity = kycPaymentInfoRepository.findById(id);
-
-            if (previousKYCPaymentInfoEntity.isPresent()) {
-
-                KYCPaymentInfoEntity previousKYCPaymentInfoEntityValue = previousKYCPaymentInfoEntity.get();
-                KYCPaymentInfoEntity newKYCPaymentInfoEntity = CmlCardPaymentInfoEntityToDTOMapper.mapCmlCardPaymentDtoToKYCPaymentInfoEntity(cmlCardPaymentDTO);
-
-                newKYCPaymentInfoEntity.setId(id);
-                newKYCPaymentInfoEntity.setVersion(previousKYCPaymentInfoEntityValue.getVersion());
-
-                kycPaymentInfoRepository.saveAndFlush(newKYCPaymentInfoEntity);
-
-                cmlCardPostResponse.setId(id);
-                cmlCardPostResponse.setStatus(CommonConstants.SUCCESS);
-            } else {
-                log.error("CmlCardPaymentInfoServiceImpl: payment info entity does not exist with kycId: "
-                        + "{}", kycIdString);
-                cmlCardPostResponse.setStatus(CommonConstants.FAILED);
-                throw new OnboardingNotFoundException(UIErrorCode.NOT_FOUND,
-                        "No record found in database for the kycId "
-                                + "provided: "
-                                + kycIdString,
-                        MDC.get(CommonConstants.TRACEID));
-            }
-
-            return cmlCardPostResponse;
-        } catch (Exception e) {
-            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.DATABASE_ERROR);
-            log.error("An exception occurred trying to update payment info with kycId: {}",
-                    cmlCardPaymentDTO.getKycId(), e);
-            throw e;
+            appLogger.info("calling Comm Card service with endpoint URL: {} and ecid: {}",
+                    url, ecid);
+            ResponseEntity<PartySearchResponse> response = oAuth2RestTemplateCommCard.getForEntity(url, PartySearchResponse.class);
+            Gson gson = new Gson();
+            PartySearchResponse responseObject = response.getBody();
+            appLogger.info("Comm Card service response for ecid: {} Response  body: {}", ecid,
+                    gson.toJson(responseObject));
+            return responseObject;
+        } catch (HttpClientErrorException | HttpServerErrorException exp) {
+            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.COMM_CARD_SVC_ERROR);
+            appLogger.error("Received: {} error from Comm Card service: ",
+                    exp.getStatusCode().value(), exp);
+            throw new DownstreamServicesException(UIErrorCode.UNEXPECTED_ERROR,
+                    "Received error from PSO service: " + exp.getMessage(),
+                    MDC.get(CommonConstants.TRACEID), exp);
+        } catch (Exception exp) {
+            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.COMM_CARD_SVC_ERROR);
+            appLogger.error("Received an unexpected error from PSO service: ", exp);
+            throw new DownstreamServicesException(UIErrorCode.UNEXPECTED_ERROR,
+                    "Received an unexpected error from PSO service",
+                    MDC.get(CommonConstants.TRACEID), exp);
         }
     }
