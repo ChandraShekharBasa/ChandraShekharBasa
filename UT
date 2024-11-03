@@ -1,27 +1,55 @@
  
-public PartySearchResponse getCostCenter(String ecid) {
+@Test
+    public void testGetCostCenter_Success() {
+        // Mocking the PartySearchResponse
+        PartySearchResponse mockResponse = new PartySearchResponse();
+        
+        // Mock the ResponseEntity to return the mocked PartySearchResponse
+        ResponseEntity<PartySearchResponse> responseEntity = mock(ResponseEntity.class);
+        when(responseEntity.getBody()).thenReturn(mockResponse);
+        
+        // Mock the RestTemplate exchange call to return the mocked ResponseEntity
+        when(restTemplate.exchange(
+                eq(commCardBaseUrl + "/api/client/getCostCenter?ecid=" + ecid),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(PartySearchResponse.class)
+        )).thenReturn(responseEntity);
+        
+        // Call the method to test
+        PartySearchResponse result = yourService.getCostCenter(ecid);
 
-        String costCenterUrl = commCardBaseUrl + "/api/client/getCostCenter?ecid=" + ecid;
-        try {
-            HttpHeaders headers = getOAuthTokenForCommCardService();
-            HttpEntity httpEntity = new HttpEntity<>(headers);
-            RestTemplate restTemplate = new RestTemplate();
+        // Verify and assert
+        assertNotNull(result);
+        assertEquals(mockResponse, result);
+        verify(restTemplate).exchange(
+                eq(commCardBaseUrl + "/api/client/getCostCenter?ecid=" + ecid),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(PartySearchResponse.class)
+        );
+    }
 
-            appLogger.info("calling commercial card service for cost center -  endpoint URL: {} and ecid: {}",
-                    costCenterUrl, ecid);
-            ResponseEntity<PartySearchResponse> response = restTemplate.exchange(costCenterUrl, HttpMethod.GET,
-                    httpEntity, PartySearchResponse.class);
-            PartySearchResponse responseObject = response.getBody();
+    @Test
+    public void testGetCostCenter_Exception() {
+        // Simulate an exception during the exchange
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(PartySearchResponse.class)
+        )).thenThrow(new RuntimeException("Service error"));
 
-            Gson gson = new Gson();
-            appLogger.info("commercial card service cost center response for ecid: {} Response  body: {}", ecid,
-                    gson.toJson(responseObject));
-            return responseObject;
-        } catch (Exception exp) {
-            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.TNO_ERROR);
-            appLogger.error("Received an unexpected error from TNO service: ", exp);
-            throw new DownstreamServicesException(UIErrorCode.UNEXPECTED_ERROR,
-                    "Received an unexpected error from TNO service",
-                    MDC.get(CommonConstants.TRACEID), exp);
-        }
+        // Verify that an exception is thrown when calling getCostCenter
+        DownstreamServicesException exception = assertThrows(
+                DownstreamServicesException.class,
+                () -> yourService.getCostCenter(ecid)
+        );
+
+        // Check exception details
+        assertEquals(UIErrorCode.UNEXPECTED_ERROR, exception.getErrorCode());
+        assertEquals("Received an unexpected error from TNO service", exception.getMessage());
+        
+        // Verify logging behavior
+        verify(appLogger).error(anyString(), any(Exception.class));
     }
