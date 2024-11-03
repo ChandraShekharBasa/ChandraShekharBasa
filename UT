@@ -1,30 +1,27 @@
  
-@Override
-    public PartySearchResponse getPartySearchResponse(String ecid) {
-        HttpHeaders headers = getOAuthTokenForCommCardService();
-        String baseUrl = commCardBaseUrl;
-        String url = baseUrl + "/api/client/clientSearch?input=" + ecid + "&idpType=&idpId=";
+public PartySearchResponse getCostCenter(String ecid) {
+
+        String costCenterUrl = commCardBaseUrl + "/api/client/getCostCenter?ecid=" + ecid;
         try {
-            appLogger.info("calling Comm Card service with endpoint URL: {} and ecid: {}",
-                    url, ecid);
-            ResponseEntity<PartySearchResponse> response = oAuth2RestTemplateCommCard.getForEntity(url, PartySearchResponse.class);
-            Gson gson = new Gson();
+            HttpHeaders headers = getOAuthTokenForCommCardService();
+            HttpEntity httpEntity = new HttpEntity<>(headers);
+            RestTemplate restTemplate = new RestTemplate();
+
+            appLogger.info("calling commercial card service for cost center -  endpoint URL: {} and ecid: {}",
+                    costCenterUrl, ecid);
+            ResponseEntity<PartySearchResponse> response = restTemplate.exchange(costCenterUrl, HttpMethod.GET,
+                    httpEntity, PartySearchResponse.class);
             PartySearchResponse responseObject = response.getBody();
-            appLogger.info("Comm Card service response for ecid: {} Response  body: {}", ecid,
+
+            Gson gson = new Gson();
+            appLogger.info("commercial card service cost center response for ecid: {} Response  body: {}", ecid,
                     gson.toJson(responseObject));
             return responseObject;
-        } catch (HttpClientErrorException | HttpServerErrorException exp) {
-            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.COMM_CARD_SVC_ERROR);
-            appLogger.error("Received: {} error from Comm Card service: ",
-                    exp.getStatusCode().value(), exp);
-            throw new DownstreamServicesException(UIErrorCode.UNEXPECTED_ERROR,
-                    "Received error from PSO service: " + exp.getMessage(),
-                    MDC.get(CommonConstants.TRACEID), exp);
         } catch (Exception exp) {
-            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.COMM_CARD_SVC_ERROR);
-            appLogger.error("Received an unexpected error from PSO service: ", exp);
+            MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.TNO_ERROR);
+            appLogger.error("Received an unexpected error from TNO service: ", exp);
             throw new DownstreamServicesException(UIErrorCode.UNEXPECTED_ERROR,
-                    "Received an unexpected error from PSO service",
+                    "Received an unexpected error from TNO service",
                     MDC.get(CommonConstants.TRACEID), exp);
         }
     }
