@@ -2,3 +2,29 @@
 [ERROR]   ClientDataServiceImplTest.testGetCostCenter_Exception:276 expected: <Received an unexpected error from TNO service: > but was: <java.lang.RuntimeException: UNEXPECTED ERROR>
 [INFO] 
 [ERROR] Tests run: 1649, Failures: 1, Errors: 0, Skipped: 11
+
+
+
+@Test
+    public void testGetCostCenter_Exception() {
+
+        ReflectionTestUtils.setField(clientDataService, "clientDataSvcRestTemplate", clientDataSvcRestTemplate);
+
+        // Simulate an exception during the exchange
+        Mockito.when(clientDataSvcRestTemplate.exchange(
+                Mockito.anyString(),
+                Mockito.eq(HttpMethod.GET),
+                Mockito.any(HttpEntity.class),
+                Mockito.eq(PartySearchResponse.class)
+        )).thenThrow(new RuntimeException(UIErrorCode.UNEXPECTED_ERROR));
+
+        // Verify that an exception is thrown when calling getCostCenter
+        DownstreamServicesException exception = Assertions.assertThrows(
+                DownstreamServicesException.class,
+                () -> clientDataService.getCostCenter("1234")
+        );
+
+        // Check exception details
+        Assertions.assertEquals(UIErrorCode.UNEXPECTED_ERROR, exception.getErrorCode());
+        Assertions.assertEquals("Received an unexpected error from TNO service: ", exception.getMessage());
+    }
