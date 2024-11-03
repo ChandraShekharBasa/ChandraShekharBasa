@@ -1,5 +1,4 @@
-[ERROR] Failures: 
-[ERROR]   ClientDataServiceImplTest.testGetCostCenter_Exception:270 expected: <Received an unexpected error from TNO service> but was: <org.springframework.web.client.ResourceAccessException: I/O error on GET request for "https://cbuo-commercial-card-service.dev.aws.jpmchase.net/v1/api/client/getCostCenter": cbuo-commercial-card-service.dev.aws.jpmchase.net>
-[ERROR] Errors: 
-[ERROR]   ClientDataServiceImplTest.testGetCostCenter_Success:244 » DownstreamServices org.springframework.web.client.ResourceAccessException: I/O error on GET request for "https://cbuo-commercial-card-service.dev.aws.jpmchase.net/v1/api/client/getCostCenter": cbuo-commercial-card-service.dev.aws.jpmchase.net
+ Failures: 
+[ERROR]   ClientDataServiceImplTest.testGetCostCenter_Exception:276 expected: <Received an unexpected error from TNO service: > but was: <java.lang.RuntimeException: UNEXPECTED ERROR>
 [INFO] 
+[ERROR] Tests run: 1649, Failures: 1, Errors: 0, Skipped: 11
