@@ -3,6 +3,9 @@
 [INFO] 
 [ERROR] Tests run: 1649, Failures: 1, Errors: 0, Skipped: 11
 
+[ERROR] Failures: 
+[ERROR]   ClientDataServiceImplTest.testGetCostCenter_Exception:276 expected: <Received an unexpected error from TNO service: > but was: <java.lang.RuntimeException: Service error>
+
 
 
 @Test
