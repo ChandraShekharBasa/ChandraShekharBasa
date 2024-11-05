@@ -1,55 +1,17 @@
  
-@Test
-    public void testGetCostCenter_Success() {
-        // Mocking the PartySearchResponse
-        PartySearchResponse mockResponse = new PartySearchResponse();
-        
-        // Mock the ResponseEntity to return the mocked PartySearchResponse
-        ResponseEntity<PartySearchResponse> responseEntity = mock(ResponseEntity.class);
-        when(responseEntity.getBody()).thenReturn(mockResponse);
-        
-        // Mock the RestTemplate exchange call to return the mocked ResponseEntity
-        when(restTemplate.exchange(
-                eq(commCardBaseUrl + "/api/client/getCostCenter?ecid=" + ecid),
-                eq(HttpMethod.GET),
-                any(HttpEntity.class),
-                eq(PartySearchResponse.class)
-        )).thenReturn(responseEntity);
-        
-        // Call the method to test
-        PartySearchResponse result = yourService.getCostCenter(ecid);
+kycDetails.setBusinessOperations(BusinessOperationsMapper.toBusinessOperationsDTO(informationEntity.getBusinessOperationsEntity()));
+            kycDetails.setDocumentMetaData(DocMetadataInfoMapper.toDocMetadataDTO(informationEntity.getDocumentMetaDataEntities()));
+            BusinessOperationsDTO busOps = kycDetails.getBusinessOperations();
+            if (busOps != null && busOps.getTotalAnnualRevenueAmount() != null) busOps.setTotalAnnualRevenueAmountString(String.valueOf(Math.round(busOps.getTotalAnnualRevenueAmount())));
 
-        // Verify and assert
-        assertNotNull(result);
-        assertEquals(mockResponse, result);
-        verify(restTemplate).exchange(
-                eq(commCardBaseUrl + "/api/client/getCostCenter?ecid=" + ecid),
-                eq(HttpMethod.GET),
-                any(HttpEntity.class),
-                eq(PartySearchResponse.class)
-        );
-    }
-
-    @Test
-    public void testGetCostCenter_Exception() {
-        // Simulate an exception during the exchange
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                any(HttpEntity.class),
-                eq(PartySearchResponse.class)
-        )).thenThrow(new RuntimeException("Service error"));
-
-        // Verify that an exception is thrown when calling getCostCenter
-        DownstreamServicesException exception = assertThrows(
-                DownstreamServicesException.class,
-                () -> yourService.getCostCenter(ecid)
-        );
-
-        // Check exception details
-        assertEquals(UIErrorCode.UNEXPECTED_ERROR, exception.getErrorCode());
-        assertEquals("Received an unexpected error from TNO service", exception.getMessage());
-        
-        // Verify logging behavior
-        verify(appLogger).error(anyString(), any(Exception.class));
-    }
+            KYCExpenseReportToolEntity kYCExpenseReportToolEntity = kYCExpenseReportingToolRepository.findByKycId(kycId);
+            if (Objects.nonNull(kYCExpenseReportToolEntity)) {
+                CmlCardThirdPartyExpenseDTO cmlCardThirdPartyExpenseDTO = CmlCardExpenseToolEntityToDTOMapper.mapKYCExpenseReportToolEntityToCmlCardThirdPartyExpenseDTO(
+                        kYCExpenseReportToolEntity);
+                kycDetails.getBusinessOperations().setExpsToolName(cmlCardThirdPartyExpenseDTO.getExpsToolName());
+                kycDetails.getBusinessOperations().setExpsToolRefNo(cmlCardThirdPartyExpenseDTO.getExpsToolRefNo());
+                kycDetails.getBusinessOperations().setExpsToolVendorEmail(cmlCardThirdPartyExpenseDTO.getExpsToolVendorEmail());
+                kycDetails.getBusinessOperations().setIsThirdPartyExpTool(cmlCardThirdPartyExpenseDTO.getIsThirdPartyExpTool());
+                kycDetails.getBusinessOperations().setVendorSecondEmail(cmlCardThirdPartyExpenseDTO.getVendorSecondEmail());
+                kycDetails.getBusinessOperations().setVendorPhone(cmlCardThirdPartyExpenseDTO.getVendorPhone());
+            }
