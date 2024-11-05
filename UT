@@ -15,3 +15,20 @@ kycDetails.setBusinessOperations(BusinessOperationsMapper.toBusinessOperationsDT
                 kycDetails.getBusinessOperations().setVendorSecondEmail(cmlCardThirdPartyExpenseDTO.getVendorSecondEmail());
                 kycDetails.getBusinessOperations().setVendorPhone(cmlCardThirdPartyExpenseDTO.getVendorPhone());
             }
+
+static BusinessOperationsDTO toBusinessOperationsDTO(BusinessOperationsEntity businessOperationsEntity){
+        BusinessOperationsDTO businessOperationsDTO = null;
+        if(businessOperationsEntity != null){
+            businessOperationsDTO = new BusinessOperationsDTO();
+            BeanUtils.copyProperties(businessOperationsEntity, businessOperationsDTO);
+            businessOperationsDTO.setMajorVendorsTenantsCountries(UOCommonUtils.stringToList(businessOperationsEntity.getMajorVendorsTenantsCountriesList()));
+            businessOperationsDTO.setPurposeOfAccount(UOCommonUtils.stringToList(businessOperationsEntity.getPurposeOfAccount()));
+            businessOperationsDTO.setSupplierCountriesOfOperations(UOCommonUtils.stringToList(businessOperationsEntity.getSupplierCountriesOfOperationsList()));
+            businessOperationsDTO.setCustomerCountriesOfOperations(UOCommonUtils.stringToList(businessOperationsEntity.getCustomerCountriesOfOperationsList()));
+            businessOperationsDTO.setOperationsConcentrationCountries(UOCommonUtils.stringToList(businessOperationsEntity.getOperationsConcentrationCountriesList()));
+            businessOperationsDTO.setInitialFundsCountries(UOCommonUtils.stringToList(businessOperationsEntity.getInitialFundsCountriesList()));
+            businessOperationsDTO.setOngoingFundsCountries(UOCommonUtils.stringToList(businessOperationsEntity.getOngoingFundsCountriesList()));
+            businessOperationsDTO.setEntityActivity(UOCommonUtils.stringToListForEntity(businessOperationsEntity.getEntityActivity()));
+        }
+        return businessOperationsDTO;
+    }
