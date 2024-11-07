@@ -1,93 +1,39 @@
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.slf4j.MDC;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ArrayList;
+  @Override
+  public CmlCardDocumentResponse uploadCMLCardPdf(String fileName, byte[] cmlCardPdf, String kycId) {
+    HttpHeaders httpHeaders = new HttpHeaders();
+    httpHeaders.set(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE);
 
-class CmlCardPaymentInfoServiceImplTest {
+    DocumentUploadMetaData metadata = DocumentUploadMetaData.builder().caller(CALLER)
+        .docTitle(fileName)
+        .internalUseOnlyIndicator("F")
+        .personalInformationClassCode("P")
+        .build();
 
-    @InjectMocks
-    private CmlCardPaymentInfoServiceImpl cmlCardPaymentInfoService;  // The class being tested
-
-    @Mock
-    private CmlCardPaymentInfoServiceImpl mockService;  // Mock the same service for internal method calls
-
-    @Mock
-    private CmlCardPaymentDTO mockCmlCardPaymentDTO;
-
-    @Mock
-    private CmlCardPostResponse mockCmlCardPostResponse;
-
-    @BeforeEach
-    public void setUp() {
-        MockitoAnnotations.openMocks(this);
-        MDC.clear();  // Clear MDC to avoid interference between tests
+    MultiValueMap<String, Object> parameters = new LinkedMultiValueMap();
+    parameters
+        .add("file", new MultipartInputStreamFileResource(new ByteArrayInputStream(cmlCardPdf),
+                                                          fileName));
+    Gson gson = new Gson();
+    parameters.add("metadata", gson.toJson(metadata));
+    try {
+      URI uri = new URIBuilder(docServiceUploadUrl).build();
+      HttpEntity requestEntity = new HttpEntity<>(parameters, httpHeaders);
+      logger.info("Making a call to SDX document service to upload Pdf: {} for kycId: {}",
+                  docServiceUploadUrl, kycId);
+      logger.info("SDX document service payload : {}", parameters);
+      ResponseEntity<CmlCardDocumentResponse> response = cbxRestTemplate.exchange(uri, HttpMethod.POST, requestEntity, CmlCardDocumentResponse.class);
+//      ResponseEntity<CmlCardDocumentResponse> response = cbxRestTemplate.postForEntity(uri, requestEntity, CmlCardDocumentResponse.class);
+      if (response.getStatusCode().is2xxSuccessful()) {
+        logger.info("CMLCard PDF file uploaded successfully for kycId: {}", kycId);
+        return response.getBody();
+      } else {
+        logger.info("CMLCard PDF file upload operation failed for kycId: {}", kycId);
+      }
+      return null;
+    } catch (HttpClientErrorException | HttpServerErrorException | URISyntaxException ex) {
+      MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.DOC_ERROR);
+      logger.error("Exception occurred while uploading CMLCard Pdf to SDX document service: ", ex);
+      logger.info("Status code: {}", ex.getMessage());
     }
-
-    @Test
-    public void testSavePaymentRebateAccountsInfo_WhenUpdatePaymentInfoIsCalled() throws Exception {
-        // Arrange
-        Long kycId = 12345L;
-        CmlCardPaymentDTO cmlCardPaymentDTO = new CmlCardPaymentDTO();
-        cmlCardPaymentDTO.setId(1L);  // Non-null ID, update method will be called
-        List<CmlCardPaymentDTO> dtoList = Arrays.asList(cmlCardPaymentDTO);
-
-        when(mockService.updatePaymentInfoV2(any(CmlCardPaymentDTO.class), anyLong()))
-                .thenReturn(new CmlCardPostResponse(CommonConstants.SUCCESS));  // Mock the update method
-
-        // Act
-        List<CmlCardPostResponse> responseList = cmlCardPaymentInfoService.savePaymentRebateAccountsInfo(dtoList, kycId);
-
-        // Assert
-        assertNotNull(responseList);
-        assertEquals(1, responseList.size());  // Ensure 1 item in response
-        verify(mockService, times(1)).updatePaymentInfoV2(any(CmlCardPaymentDTO.class), anyLong());  // Verify update call
-        verify(mockService, never()).savePaymentInfoV2(any(CmlCardPaymentDTO.class));  // Ensure save method is not called
-    }
-
-    @Test
-    public void testSavePaymentRebateAccountsInfo_WhenSavePaymentInfoIsCalled() throws Exception {
-        // Arrange
-        Long kycId = 12345L;
-        CmlCardPaymentDTO cmlCardPaymentDTO = new CmlCardPaymentDTO();
-        cmlCardPaymentDTO.setId(null);  // Null ID, save method will be called
-        List<CmlCardPaymentDTO> dtoList = Arrays.asList(cmlCardPaymentDTO);
-
-        when(mockService.savePaymentInfoV2(any(CmlCardPaymentDTO.class)))
-                .thenReturn(new CmlCardPostResponse(CommonConstants.SUCCESS));  // Mock the save method
-
-        // Act
-        List<CmlCardPostResponse> responseList = cmlCardPaymentInfoService.savePaymentRebateAccountsInfo(dtoList, kycId);
-
-        // Assert
-        assertNotNull(responseList);
-        assertEquals(1, responseList.size());  // Ensure 1 item in response
-        verify(mockService, times(1)).savePaymentInfoV2(any(CmlCardPaymentDTO.class));  // Verify save call
-        verify(mockService, never()).updatePaymentInfoV2(any(CmlCardPaymentDTO.class), anyLong());  // Ensure update method is not called
-    }
-
-    @Test
-    public void testSavePaymentRebateAccountsInfo_ThrowsException() {
-        // Arrange
-        Long kycId = 12345L;
-        CmlCardPaymentDTO cmlCardPaymentDTO = new CmlCardPaymentDTO();
-        List<CmlCardPaymentDTO> dtoList = Arrays.asList(cmlCardPaymentDTO);
-
-        // Mock the savePaymentInfoV2 to throw an exception
-        when(mockService.savePaymentInfoV2(any(CmlCardPaymentDTO.class)))
-                .thenThrow(new RuntimeException("Database error"));
-
-        // Act & Assert
-        Exception exception = assertThrows(RuntimeException.class, () ->
-                cmlCardPaymentInfoService.savePaymentRebateAccountsInfo(dtoList, kycId));
-
-        assertEquals("Database error", exception.getMessage());  // Ensure the exception message is correct
-        verify(mockService, times(1)).savePaymentInfoV2(any(CmlCardPaymentDTO.class));  // Verify save call before exception
-    }
-}
+    return null;
+  }
