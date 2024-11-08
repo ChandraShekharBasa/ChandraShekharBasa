@@ -1,16 +1,17 @@
 Hi Team,
 
-We are planning to have a new build(1.6.23) released by Tuesday, November 12th EOD.
-QA can start the testing from Wednesday morning hours (IST - time zone where QA is available). 
+We are planning to release a new build (1.6.23) by Tuesday, November 12th, end of day. QA can start testing on Wednesday morning (IST), which aligns with the availability of our QA team.
 
-This build addresses the following items based on the priority & valueness:
-Legal changes (S4846432: Legal: Revise T&C Checkbox Label and Hyperlinks | Rally)
-Graceful error message for existing customer (S4849478: Account exists error - short term solution | Rally )
-Try Again button is not working (DE456711: HA: 'Try again' button is not clickable when the already registered email is used | Rally)
-Query param change error page (DE456875: Application page is broken upon modifying the query parameters | Rally)
-Please note that a spike will be created for the issue "plain password text is seen in network logs(payload)"  and this will worked on priority for next release.
+This build addresses the following prioritized items:
 
-Please let me know if you have any questions/concerns on the plan.
+Legal changes: Update T&C Checkbox Label and Hyperlinks (S4846432 | Rally)
+Graceful error message: Provide clear messaging for existing accounts (S4849478 | Rally)
+Try Again button fix: Make 'Try again' button clickable for previously registered emails (DE456711 | Rally)
+Error handling for query parameters: Resolve error on application page when query parameters are modified (DE456875 | Rally)
+Please note that we will create a spike to address the issue of plaintext passwords appearing in network logs. This will be prioritized for the next release.
+
+Feel free to reach out if you have any questions or concerns about the plan.
 
 Thanks,
 Chandra
+
