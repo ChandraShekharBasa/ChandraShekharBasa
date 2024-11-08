@@ -1,29 +1,16 @@
-EmployeeSearch employeeSearchReq = new EmployeeSearch();
-            employeeSearchReq.setQuery(new Query());
-            employeeSearchReq.getQuery().setImpersonate("V841274");
-            employeeSearchReq.getQuery().setBulk(new Bulk());
-            employeeSearchReq.getQuery().getBulk().setField(CommonConstants.ALL);
-            employeeSearchReq.getQuery().getBulk().setValues(searchQuery);
+Hi Team,
 
-            log.info("Employee Search request: {}", employeeSearchReq);
+We are planning to have a new build(1.6.23) released by Tuesday, November 12th EOD.
+QA can start the testing from Wednesday morning hours (IST - time zone where QA is available). 
 
-            HttpEntity<EmployeeSearch> httpEntity = new HttpEntity<>(employeeSearchReq, httpHeaders);
+This build addresses the following items based on the priority & valueness:
+Legal changes (S4846432: Legal: Revise T&C Checkbox Label and Hyperlinks | Rally)
+Graceful error message for existing customer (S4849478: Account exists error - short term solution | Rally )
+Try Again button is not working (DE456711: HA: 'Try again' button is not clickable when the already registered email is used | Rally)
+Query param change error page (DE456875: Application page is broken upon modifying the query parameters | Rally)
+Please note that a spike will be created for the issue "plain password text is seen in network logs(payload)"  and this will worked on priority for next release.
 
-            empSearchResponse = empSearchRestTemplate.exchange(url, HttpMethod.POST, httpEntity,
-                    EmployeeSearchResponse.class);
+Please let me know if you have any questions/concerns on the plan.
 
-
-
-
-
-Employee Search request: EmployeeSearch(query=Query(impersonate=null, criteria=null, bulk=Bulk(field=_all, values=[basa])))
-{
-  "query": {
-    "impersonate": null,
-    "criteria": null,
-    "bulk": {
-      "field": "_all",
-      "values": ["basa"]
-    }
-  }
-}
+Thanks,
+Chandra
