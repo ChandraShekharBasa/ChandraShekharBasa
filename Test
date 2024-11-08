@@ -1,18 +1,1 @@
-const correctUrlParams = () => {
-	if (
-		!searchParams.has('dist') ||
-		!searchParams.has('lang') ||
-		!searchParams.get('dist') ||
-		!searchParams.get('lang')
-	) {
-		let dist = (searchParams.get('dist') || process.env.VITE_DISTRIBUTOR) ?? 'ha';
-		let lang = (searchParams.get('lang') || process.env.VITE_DEFAULT_LANGUAGE) ?? 'en-us';
 
-		let newSearchParams = new URLSearchParams();
-
-		newSearchParams.set('dist', dist);
-		newSearchParams.set('lang', lang);
-
-		window.location.href = `${urlInfo.origin}${urlInfo.pathname}?${newSearchParams.toString()}`;
-	}
-};
