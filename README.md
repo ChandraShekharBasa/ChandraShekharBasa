@@ -1,36 +1,106 @@
-public void initiateCardProSubmission(Long kycId) {
+UPDATED LATEST FROM CHATGPT:
+[=============================
 
-        appLogger.info("Orchestration Async process for certifier initiated with kycId: {}", kycId);
-        Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().serializeNulls().create();
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-        KYCInformationDTO kycInformation = kycInformationUtilityService.getKycInformation(kycId);
-        appLogger.info("KycInformation within new async for certifier thread with kycId: {} and kycInformation: {}", kycId, gson.toJson(kycInformation));
-        String ecid = kycInformation.getEcid();
-        appLogger.info("ECID {} With kycId for certifier: {}", ecid, kycId);
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
 
-        try {
-            CmlCardBaseDTO cmlCardBaseDTO = generatePayloadForPDFOrCardProSubmission(kycId, kycInformation, null, null, true);
+import java.util.Collections;
+import java.util.List;
 
-            List<KYCClientUploadedDocumentDTO> kycClientUploadedDocumentList = kycClientUploadedDocumentService.getKYCClientUploadedDocumentsDto(kycId);
+@ExtendWith(MockitoExtension.class)
+class YourServiceTest {
 
-            if (!CollectionUtils.isEmpty(kycClientUploadedDocumentList)) {
-                List<KYCClientUploadedDocumentDTO> filteredKycClientUploadedDocumentList  = kycClientUploadedDocumentList.stream()
-                        .filter(doc -> (doc.getDocumentType().equalsIgnoreCase(COLTConstants.INTERNAL_DOCTYPE)) ||
-                                doc.getDocumentType().equalsIgnoreCase(COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE))
-                        .collect(Collectors.toList());
+    @InjectMocks
+    private YourService yourService;
 
-                if (CollectionUtils.isEmpty(cmlCardBaseDTO.getDocumentId())) {
-                    cmlCardBaseDTO.setDocumentId(filteredKycClientUploadedDocumentList.stream().map(KYCClientUploadedDocumentDTO::getDocumentId).collect(Collectors.toList()));
-                }
-                CmlCardMapper.mapClientUploadedDocumentList(cmlCardBaseDTO, filteredKycClientUploadedDocumentList);
+    @Mock
+    private CMLCardProductService cmlCardProductService;
 
-                appLogger.info("Calling submitToCardPro for certifier with kycId: {}", kycId);
-                submitToCardPro(kycId, cmlCardBaseDTO, gson);
-                submitContract(kycId);
-            }
+    @Mock
+    private KYCInformationUtilityService kycInformationUtilityService;
 
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Mock
+    private DocManagementService docManagementService;
 
+    @Mock
+    private OrchestrationService orchestrationService;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private Logger appLogger;
+
+    @Mock
+    private KYCInformationEntity kycInformationEntity;
+
+    @Mock
+    private DocumentMetaDataEntity documentMetaDataEntity;
+
+    @Mock
+    private Product product;
+
+    private final Long kycId = 123L;
+
+    @BeforeEach
+    void setUp() {
+        // Basic setup for mocks, assuming accelerator card type
+        when(product.getType()).thenReturn(COLTConstants.ACCELERATOR_CARD);
+        when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(Collections.singletonList(product));
+        when(kycInformationUtilityService.getKycInformationEntity(kycId)).thenReturn(kycInformationEntity);
+        when(docManagementService.getCCADocForAcceleratorCard(kycId)).thenReturn(documentMetaDataEntity);
     }
+
+    @Test
+    void testSubmitContract_SuccessWithinInitiateCardProSubmission() {
+        // Arrange
+        when(orchestrationService.submitContract(any(ContractBaseRequest.class))).thenReturn(CommonConstants.CONTRACT_API_SUBMIT_SUCCESS);
+
+        // Act
+        yourService.initiateCardProSubmission(kycId);
+
+        // Assert
+        verify(orchestrationService).submitContract(any(ContractBaseRequest.class));
+        verify(kycInformationUtilityService).saveKycInformation(kycInformationEntity);
+        verify(appLogger).info("Updating KycInformation with contract submission status: {} for kycId {}",
+                CommonConstants.CONTRACT_API_SUBMIT_SUCCESS, kycId);
+        assertEquals(CommonConstants.CONTRACT_API_SUBMIT_SUCCESS, kycInformationEntity.getContractSubmitStatus());
+    }
+
+    @Test
+    void testSubmitContract_FailureWithinInitiateCardProSubmission() {
+        // Arrange
+        when(orchestrationService.submitContract(any(ContractBaseRequest.class))).thenThrow(new DownstreamServicesException());
+
+        // Act
+        assertThrows(RuntimeException.class, () -> yourService.initiateCardProSubmission(kycId));
+
+        // Assert
+        verify(emailService).sendEmailForServiceFailure(kycId, CommonConstants.CONTRACT_API);
+        verify(kycInformationUtilityService).saveKycInformation(kycInformationEntity);
+        verify(appLogger).info("Updating KycInformation with contract submission status: {} for kycId {}",
+                CommonConstants.CONTRACT_API_SUBMIT_FAILED, kycId);
+    }
+
+    @Test
+    void testSubmitContract_ProductsListIsNullWithinInitiateCardProSubmission() {
+        // Arrange
+        when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(null);
+
+        // Act
+        yourService.initiateCardProSubmission(kycId);
+
+        // Assert
+        verify(orchestrationService, never()).submitContract(any(ContractBaseRequest.class));
+        verify(emailService, never()).sendEmailForServiceFailure(anyLong(), anyString());
+    }
+}
+
