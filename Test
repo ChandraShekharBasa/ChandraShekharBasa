@@ -1,2 +1,11 @@
 
-ALTER TABLE cre_kyc.KYC_INFO ADD CONTRACTS_SERVICE_STATUS VARCHAR2(10);
+Hi Harsh/Abhi,
+
+We have anticipated to complete all the changes and get the new release build by tomorrow EOD.
+But due to the new stories added to the list today morning, we need some more time (may be a day) to complete everything.
+
+This is to stabilize the deliverables instead of pushing them in rush.
+Hope you understand the concern and thanks for your support.
+
+Thanks,
+Chandra
