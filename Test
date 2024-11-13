@@ -1,1 +1,14 @@
 19:54:47.447 [http-nio-8080-exec-4] ERROR appLog - DBE01:database error: Duplicate identifier in table (cre_kyc.kyc_address) - net.jpmchase.cbuo.onboarding.entities.cmlcard.KYCAddressEntity#541
+
+
+
+Optional<KYCAddressEntity> existingRecord = repository.findById(entity.getId());
+if (existingRecord.isPresent()) {
+    // Update the existing record
+    KYCAddressEntity updatedRecord = existingRecord.get();
+    updatedRecord.setField(entity.getField()); // update fields as needed
+    repository.save(updatedRecord);
+} else {
+    // Insert new record
+    repository.save(entity);
+}
