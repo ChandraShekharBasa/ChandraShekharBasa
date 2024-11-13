@@ -1,213 +1,25 @@
-const express = require('express');
-const router = express.Router();
-const { checkSchema, validationResult } = require('express-validator');
-const kvClient = require('../utils/keyVault');
-const axios = require('axios');
-const logger = require('../utils/logger');
-const httpsAgent = require('../utils/httpsAgent');
-const { XMCCORRELATIONID, CDM_CREATE_CONSENT_ENDPOINT } = require('../utils/constants');
-const { isFeatureFlagEnabled } = require('../utils/featureFlagService');
+Hi Team,
 
-const Netstorage = require('../utils/netstorage/netstorage');
+We have completed all the changes for the committed priority items as informed earlier. 
+We have the new release build(1.6.24) ready and the STAGE environment is updated with the release build.
 
-const url = process.env.VITE_VCITA_API;
+We observed a few issues mentioned below in our review session and those issues got fixed as well.
+When changing the "dist" query param with some random value, it should default to Hello alice ("ha") theme and application page should not break.
+Legal page formatting issue
+Update subscription end-end flow
+The font styling of Terms & conditions apply text in Footer should be corrected
+All these fixes are available in Development environment and we need to push them to STAGE.
+@Praful Chandekar [C], Following is the PR list which are merged to Develop, and we need your help in pushing them to STAGE after proper verification.
+Please go through the recording available in the SBD Devs teams group to get some understanding on what needs to be validated before pushing the changes to STAGE.
+Pull Request #330: E154836/bugfix/legal page formatting - Bitbucket
+Pull Request #600: S000/vqa query fix - Bitbucket
+Pull Request #331: S4842653: Updating Terms & conditions apply text font size as appropriate - Bitbucket
+@Amit Balagar/@Anita Sudnye [C] The current STAGE environment contains all the major changes so I request you to start testing on the same and collect the evidences.
+For your convenience, I updated all the DEV complete stories to QA column.
+Once the final build is available, you can perform the regression testing and get all the required items(evidences, UI automation tests) ready by 10 AM EST, Wednesday for PLL.
+Please add your evidences to this PLL confluence page Small and Medium Enterprises SME Biz360 MTF Hotfix Evidence Page - Production Launch List Tracking V2.2023.Q1 - Confluence
 
-const checkboxValidator = (value) => !!value;
+If any issues are identified, please update the team and get it triaged so that we can work on them if it is a critical issue.
 
-router.post(
-	'/register',
-	checkSchema(
-		{
-			email: {
-				trim: true,
-				notEmpty: {
-					errorMessage: 'EMAIL_REQUIRED',
-				},
-				isEmail: {
-					errorMessage: 'ENTER_VALID_EMAIL',
-				},
-			},
-			businessname: {
-				trim: true,
-				notEmpty: {
-					errorMessage: 'BUSINESS_NAME_REQUIRED',
-				},
-			},
-			password: {
-				trim: true,
-				notEmpty: {
-					errorMessage: 'PASSWORD_REQUIRED',
-				},
-				isLength: {
-					options: { min: 8 },
-					errorMessage: 'PASSWORD_MIN_CHARS_8',
-				},
-				custom: {
-					options: (value) => {
-						return (
-							/[ !@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/g.test(value) && /[A-Z]/g.test(value) && /[0-9]/g.test(value)
-						);
-					},
-					errorMessage: 'PASSWORD_CRITERIA_ERROR',
-				},
-			},
-			repassword: {
-				notEmpty: {
-					errorMessage: 'REPASS_REQUIRED',
-				},
-				custom: {
-					options: (value, { req }) => value === req.body.password,
-					errorMessage: 'REPASS_NOT_SAMEAS_PASS',
-				},
-			},
-			iAgreeCheck: {
-				custom: {
-					options: checkboxValidator,
-					errorMessage: 'TNC_ACCEPT_ERROR',
-				},
-			},
-			hippaCheckbox: {
-				custom: {
-					options: checkboxValidator,
-					errorMessage: 'HIPPA_ACCEPT_ERROR',
-				},
-			},
-		},
-		['body'],
-	),
-	async (req, res) => {
-		const errors = validationResult
-			.withDefaults({
-				formatter: (error) => ({
-					key: error.path,
-					msg: req.constants ? req.constants[error.msg] || error.msg : error.msg,
-				}),
-			})(req)
-			.array({ onlyFirstError: true });
-		if (errors.length) {
-			return res.status(400).json({ errors });
-		}
-
-		const distributorCode = req.headers.distributor;
-		const correlationId = req.headers[XMCCORRELATIONID];
-		let token;
-		try {
-			const { value } = await kvClient().getSecret('VCITA-AUTH-' + distributorCode.toUpperCase());
-			token = value;
-		} catch (error) {
-			logger.info(`Failed getting ${distributorCode} vcita token from key vault`, {
-				httpmethod: 'POST',
-				url: url + '/businesses',
-				responsecode: 500,
-				correlationid: correlationId,
-				operation: 'Vcita account creation',
-				suboperation: 'API Request',
-				remoteip: req.headers['x-forwarded-for'] || req.headers['True-Client-Ip'],
-				error: error,
-			});
-
-			return res.status(500).json({
-				title: req.constants?.OOPS_ERROR,
-				message: req.constants?.SOMETHING_WRONG,
-			});
-		}
-		const maskedMail = req.body.email.replace(/(?<=.).(?=[^@]*?.@)/g, 'x');
-		let maskedBody = {};
-
-		const headers = {
-			Accept: 'application/json',
-			Authorization: `Bearer ${token}`,
-			[XMCCORRELATIONID]: correlationId,
-		};
-
-		const body = {
-			admin_account: {
-				email: req.body.email,
-				password: req.body.password,
-				language: req.body?.languageCode,
-			},
-			business: {
-				name: req.body.businessname,
-			},
-			meta: {
-				external_reference_id: req.body.uniqueExternalIdentifier || req.body.email,
-			},
-		};
-
-		maskedBody = JSON.parse(JSON.stringify(body));
-		maskedBody.admin_account.email = maskedMail;
-		maskedBody.meta.external_reference_id =
-			maskedBody.meta?.external_reference_id?.replace(/(?<=.).(?=[^@]*?.@)/g, 'x') || '';
-		delete maskedBody.admin_account.password;
-
-		logger.info(`Create account on vcita with email -> ${maskedMail}`, {
-			url: url + '/businesses',
-			httpmethod: 'POST',
-			body: maskedBody,
-			correlationid: correlationId,
-			operation: 'Vcita account creation',
-			suboperation: 'API Request',
-			remoteip: req.headers['x-forwarded-for'] || req.headers['True-Client-Ip'],
-		});
-
-		const startTime = new Date().getTime();
-
-		try {
-			// if the user is in the test list, don't call vcita
-			let response = {};
-			if (req.body.email == 'successfulRegistrationTest@mastercard.com') {
-				response.data = {
-					data: {
-						title: 'Successful Registration',
-						message: 'This is a mock response.',
-					},
-				};
-			} else {
-				response = await axios.post(url + '/businesses', body, { headers, httpsAgent: httpsAgent() });
-			}
-
-			const endTime = new Date().getTime();
-			const responseTime = endTime - startTime;
-			const responseData = response.data;
-			const maskedRespData = JSON.parse(JSON.stringify(responseData.data));
-
-			delete maskedRespData.business.admin_account.email;
-			delete maskedRespData.business.admin_account.phone;
-			delete maskedRespData.business.business.phone;
-
-			logger.info(`Successfully created account on vcita with email -> ${maskedMail}`, {
-				url: url + '/businesses',
-				httpmethod: 'POST',
-				responsecode: 200,
-				body: maskedBody,
-				data: maskedRespData,
-				correlationid: correlationId,
-				operation: 'Vcita account creation',
-				suboperation: 'API Response',
-				remoteip: req.headers['x-forwarded-for'] || req.headers['True-Client-Ip'],
-				responseTime: responseTime + 'ms',
-			});
-			res.json(responseData);
-		} catch (error) {
-			const endTime = new Date().getTime();
-			const responseTime = endTime - startTime;
-
-			const responseCode = error?.response?.status || 500;
-
-			logger.error(`BACK-03-${responseCode}-011: Error calling create account API on Vcita`, {
-				url: url + '/businesses',
-				body: maskedBody,
-				httpmethod: 'POST',
-				responsecode: responseCode,
-				error: error?.response?.data,
-				correlationid: correlationId,
-				operation: 'Vcita account creation',
-				suboperation: 'API Response',
-				remoteip: req.headers['x-forwarded-for'] || req.headers['True-Client-Ip'],
-				responseTime: responseTime + 'ms',
-				errorCode: `BACK-03-${responseCode}-011`,
-			});
-			res.status(responseCode).json({ error: error?.response?.data?.message || req.constants?.INTERNAL_SERVER_ERROR });
-		}
-	},
-);
+Thanks,
+Chandra
