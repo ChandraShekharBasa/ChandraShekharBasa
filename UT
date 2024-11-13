@@ -1,25 +1,35 @@
+Here's a refined and more formal version of your email:
+
+---
+
+**Subject:** Release Build 1.6.24 - Ready for Testing and Deployment to STAGE
+
 Hi Team,
 
-We have completed all the changes for the committed priority items as informed earlier. 
-We have the new release build(1.6.24) ready and the STAGE environment is updated with the release build.
+We have completed all changes for the previously committed priority items, and the new release build (1.6.24) is now deployed to the STAGE environment.
 
-We observed a few issues mentioned below in our review session and those issues got fixed as well.
-When changing the "dist" query param with some random value, it should default to Hello alice ("ha") theme and application page should not break.
-Legal page formatting issue
-Update subscription end-end flow
-The font styling of Terms & conditions apply text in Footer should be corrected
-All these fixes are available in Development environment and we need to push them to STAGE.
-@Praful Chandekar [C], Following is the PR list which are merged to Develop, and we need your help in pushing them to STAGE after proper verification.
-Please go through the recording available in the SBD Devs teams group to get some understanding on what needs to be validated before pushing the changes to STAGE.
-Pull Request #330: E154836/bugfix/legal page formatting - Bitbucket
-Pull Request #600: S000/vqa query fix - Bitbucket
-Pull Request #331: S4842653: Updating Terms & conditions apply text font size as appropriate - Bitbucket
-@Amit Balagar/@Anita Sudnye [C] The current STAGE environment contains all the major changes so I request you to start testing on the same and collect the evidences.
-For your convenience, I updated all the DEV complete stories to QA column.
-Once the final build is available, you can perform the regression testing and get all the required items(evidences, UI automation tests) ready by 10 AM EST, Wednesday for PLL.
-Please add your evidences to this PLL confluence page Small and Medium Enterprises SME Biz360 MTF Hotfix Evidence Page - Production Launch List Tracking V2.2023.Q1 - Confluence
+During our review session, we identified and resolved the following issues:
+1. The application defaults to the "Hello Alice" ("ha") theme without breaking the page when an invalid "dist" query parameter is entered.
+2. Formatting adjustments on the Legal page.
+3. Updates to the end-to-end subscription flow.
+4. Font styling corrections for the "Terms & Conditions Apply" text in the footer.
 
-If any issues are identified, please update the team and get it triaged so that we can work on them if it is a critical issue.
+These fixes are currently in the Development environment and need to be pushed to STAGE.
 
-Thanks,
+**@Praful Chandekar [C]**
+The following pull requests have been merged into the Development branch. We need your assistance in moving them to STAGE after appropriate verification:
+- **Pull Request #330**: E154836/bugfix/legal page formatting - Bitbucket
+- **Pull Request #600**: S000/vqa query fix - Bitbucket
+- **Pull Request #331**: S4842653: Updating Terms & Conditions text font size - Bitbucket
+
+Please refer to the recording in the SBD Devs Teams group for an overview of the validation steps required before pushing these changes to STAGE.
+
+**@Amit Balagar/@Anita Sudnye [C]**
+The STAGE environment is now updated with major changes, so please begin testing and gathering evidence. All DEV-complete stories have been moved to the QA column for your reference. Once the final build is available, please complete regression testing and have all necessary items (evidence, UI automation tests) ready by 10 AM EST on Wednesday for PLL.
+
+Please add your evidence to the PLL Confluence page: **Small and Medium Enterprises SME Biz360 MTF Hotfix Evidence Page - Production Launch List Tracking V2.2023.Q1 - Confluence**.
+
+If any issues arise, please inform the team promptly for triage and resolution if critical.
+
+Thanks,  
 Chandra
