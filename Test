@@ -1,8 +1,1 @@
-Hi Harsh/Abhi,
-
-We had planned to complete all the changes and deliver the new release build by the end of day tomorrow. However, with the additional stories added to the scope this morning, we will need a little more time—likely an extra day—to ensure everything is completed thoroughly.
-
-Taking this additional time will help stabilize the deliverables and avoid any rushed implementations. I appreciate your understanding and ongoing support.
-
-Thanks,
-Chandra
+19:54:47.447 [http-nio-8080-exec-4] ERROR appLog - DBE01:database error: Duplicate identifier in table (cre_kyc.kyc_address) - net.jpmchase.cbuo.onboarding.entities.cmlcard.KYCAddressEntity#541
