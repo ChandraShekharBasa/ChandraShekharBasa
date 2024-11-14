@@ -1,23 +1,10 @@
-19:54:47.447 [http-nio-8080-exec-4] ERROR appLog - DBE01:database error: Duplicate identifier in table (cre_kyc.kyc_address) - net.jpmchase.cbuo.onboarding.entities.cmlcard.KYCAddressEntity#541
+Initially I thought the below is the root cause after the investigation.
 
-Hibernate applies the specified cascade type automatically when persisting or updating entities.
+Hibernate attempts to insert a new KYC_ADDRESS record but encounters a duplicate identifier upon updating the "cardholder and administrator information" from UI i.e. when updating KYC_RELATED_PARTY parent table that stores/updates the KYC address into the child/associated table KYC_ADDRESS.
+This is likely because Hibernate is unaware that the KYC_ADDRESS object already exists and should be updated instead of inserted.
 
-For example, if you set CascadeType.MERGE, Hibernate will update any existing child entities rather than trying to insert them.
-If CascadeType.ALL is specified, Hibernate will include PERSIST, MERGE, REMOVE, and other operations, potentially causing duplicate entries if child entities aren’t managed carefully.
+So I made the fix and sent PR for the same: https://bitbucketdc-cluster07.jpmchase.net/projects/CBOPTIMIZER/repos/cbuo-client-onboarding-svc/pull-requests/175/overview
 
+However, when I recheck the issue today on UAT environment after UAT DB is wiped out, I observed that the reported use case is working fine and issue is no longer seen. So issue seems be with corrupted data in DB.
 
-Hibernate attempts to insert a new KYCAddressEntity record but encounters a duplicate identifier. This is likely because Hibernate is unaware that the KYCAddressEntity object already exists and should be updated instead of inserted.
-
-Here’s a strategy to ensure that the KYCAddressEntity record is updated if it exists and inserted if it
-
-
-Optional<KYCAddressEntity> existingRecord = repository.findById(entity.getId());
-if (existingRecord.isPresent()) {
-    // Update the existing record
-    KYCAddressEntity updatedRecord = existingRecord.get();
-    updatedRecord.setField(entity.getField()); // update fields as needed
-    repository.save(updatedRecord);
-} else {
-    // Insert new record
-    repository.save(entity);
-}
+Hence resolving the ticket and assigning it to Susmita for further validation.
