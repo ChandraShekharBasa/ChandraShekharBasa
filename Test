@@ -1,10 +1,9 @@
-Initially I thought the below is the root cause after the investigation.
+Initially I suspect the root cause of the issue was as follows.
 
-Hibernate attempts to insert a new KYC_ADDRESS record but encounters a duplicate identifier upon updating the "cardholder and administrator information" from UI i.e. when updating KYC_RELATED_PARTY parent table that stores/updates the KYC address into the child/associated table KYC_ADDRESS.
-This is likely because Hibernate is unaware that the KYC_ADDRESS object already exists and should be updated instead of inserted.
+When updating the "cardholder and administrator information" from the UI—specifically, when updating the KYC_RELATED_PARTY parent table, which stores and updates the KYC address in the associated KYC_ADDRESS child table—Hibernate attempted to insert a new KYC_ADDRESS record. This resulted in a duplicate identifier error. This likely occurred because Hibernate was not aware that the KYC_ADDRESS object already existed and should have been updated rather than inserted.
 
-So I made the fix and sent PR for the same: https://bitbucketdc-cluster07.jpmchase.net/projects/CBOPTIMIZER/repos/cbuo-client-onboarding-svc/pull-requests/175/overview
+To address this, I implemented a fix and submitted a PR here: PR #175.
 
-However, when I recheck the issue today on UAT environment after UAT DB is wiped out, I observed that the reported use case is working fine and issue is no longer seen. So issue seems be with corrupted data in DB.
+However, after reviewing the issue today in the UAT environment—following a UAT database reset—the reported use case appears to be functioning correctly, and the issue no longer occurs. This suggests that the problem was due to corrupted data in the database.
 
-Hence resolving the ticket and assigning it to Susmita for further validation.
+Therefore, I am resolving this ticket and reassigning it to Susmita for further validation.
