@@ -1,5 +1,14 @@
 19:54:47.447 [http-nio-8080-exec-4] ERROR appLog - DBE01:database error: Duplicate identifier in table (cre_kyc.kyc_address) - net.jpmchase.cbuo.onboarding.entities.cmlcard.KYCAddressEntity#541
 
+Hibernate applies the specified cascade type automatically when persisting or updating entities.
+
+For example, if you set CascadeType.MERGE, Hibernate will update any existing child entities rather than trying to insert them.
+If CascadeType.ALL is specified, Hibernate will include PERSIST, MERGE, REMOVE, and other operations, potentially causing duplicate entries if child entities aren’t managed carefully.
+
+
+Hibernate attempts to insert a new KYCAddressEntity record but encounters a duplicate identifier. This is likely because Hibernate is unaware that the KYCAddressEntity object already exists and should be updated instead of inserted.
+
+Here’s a strategy to ensure that the KYCAddressEntity record is updated if it exists and inserted if it
 
 
 Optional<KYCAddressEntity> existingRecord = repository.findById(entity.getId());
