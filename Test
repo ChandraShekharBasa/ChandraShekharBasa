@@ -1,68 +1,25 @@
-import static org.mockito.Mockito.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import com.example.yourpackage.PSOResponse;
-import com.example.yourpackage.EmployeeDTO;
-import com.example.yourpackage.CommonUtilityService;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.ResponseEntity;
-
-import java.util.Arrays;
-import java.util.List;
-
-class EmployeeControllerTest {
-
-    @Mock
-    private CommonUtilityService commonUtilityService;
-
-    @InjectMocks
-    private EmployeeController employeeController; // Replace with the actual class name
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+@Override
+    public PSOResponse getClientCreditDetails(String ecid) {
+        PSOResponse psoResponse = null;
+        if (wfdsEnabled) {
+            psoResponse = new PSOResponse();
+            String ucn = null;
+            try {
+                ucn = commonUtilityService.getUcn(ecid);
+                log.info("UCN: {}", ucn);
+            } catch (Exception e) {
+                log.error("Exception while getting ucn : ", e);
+            }
+            WFDSResponse wfdsResponse = commonUtilityService.getClientFacilityList(ucn);
+            List<FacilityInfo> facilityList = commonUtilityService.getFacilityInfo(wfdsResponse);
+            if (!CollectionUtils.isEmpty(facilityList)) {
+                psoResponse.setResult(facilityList.get(0));
+            } else {
+                psoResponse.setResult(null);
+            }
+        } else {
+            String url = psoBaseUrl + "/api/commcard/credit-details?ecid=" + ecid;
+            psoResponse = getPSOResponse(ecid, url);
+        }
+        return psoResponse;
     }
-
-    @Test
-    void testGetEmployeeDetailsFromNavigator_Success() {
-        // Arrange
-        String searchData = "John";
-        List<EmployeeDTO> mockEmployees = Arrays.asList(
-            new EmployeeDTO("John Doe", "HR", "12345"),
-            new EmployeeDTO("John Smith", "IT", "67890")
-        );
-        when(commonUtilityService.getEmployeeDetails(searchData)).thenReturn(mockEmployees);
-
-        // Act
-        ResponseEntity<PSOResponse> response = employeeController.getEmployeeDetailsFromNavigator(searchData);
-
-        // Assert
-        assertThat(response.getStatusCodeValue()).isEqualTo(200);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getResult()).isEqualTo(mockEmployees);
-
-        verify(commonUtilityService, times(1)).getEmployeeDetails(searchData);
-    }
-
-    @Test
-    void testGetEmployeeDetailsFromNavigator_Exception() {
-        // Arrange
-        String searchData = "Invalid";
-        when(commonUtilityService.getEmployeeDetails(searchData)).thenThrow(new RuntimeException("Service error"));
-
-        // Act
-        ResponseEntity<PSOResponse> response = employeeController.getEmployeeDetailsFromNavigator(searchData);
-
-        // Assert
-        assertThat(response.getStatusCodeValue()).isEqualTo(200);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getResult()).isNull(); // Since no result is set in exception case
-
-        verify(commonUtilityService, times(1)).getEmployeeDetails(searchData);
-    }
-}
