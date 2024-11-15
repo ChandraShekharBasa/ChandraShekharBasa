@@ -37,3 +37,26 @@ VideoPlayer.propTypes = {
 };
 
 export default VideoPlayer;
+
+
+
+
+import React from 'react';
+import VideoPlayer from './VideoPlayer';
+
+const App = () => (
+  <div>
+    <h1>My Video Player</h1>
+    <VideoPlayer
+      src="https://www.example.com/path-to-your-video.mp4"
+      controls={true}
+      autoplay={false}
+      loop={false}
+      muted={false}
+      poster="https://www.example.com/path-to-poster-image.jpg"
+      className="my-custom-video-class"
+    />
+  </div>
+);
+
+export default App;
