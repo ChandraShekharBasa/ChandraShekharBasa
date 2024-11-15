@@ -1,16 +1,12 @@
-Hi Amit/Anita,
-
-We have fixed the following Mobile view priority issues that are reported.
-Get in touch link is broken
-Biz360 logo in header is missing in Features & Pricing pages
-The changes are deployed to STAGE so please start testing these & any related use cases, run the regression suite, collect the evidences and share with them within this group.
-
-Minisite version: 1.6.28
-Component lib version: 1.3.90
-
-Please note that these are not show stoppers for the ongoing PROD release and we are planning to provide these changes as hot fix later.
-
-Thanks for your support.
-
-Thanks,
-Chandra
+@RequestMapping(value = "/navigator/employee/search", method = RequestMethod.GET)
+    public ResponseEntity<PSOResponse> getEmployeeDetailsFromNavigator(@RequestParam("searchData") String searchData) {
+        PSOResponse psoResponse = new PSOResponse();
+        try {
+            List<EmployeeDTO> employeeSearchResponse = commonUtilityService.getEmployeeDetails(searchData);
+            log.info("employeeSearchResponse: {}", employeeSearchResponse);
+            psoResponse.setResult(employeeSearchResponse);
+        } catch (Exception e) {
+            log.error("Exception while getting employeeSearchResponse from navigator : ", e);
+        }
+        return ResponseEntity.ok(psoResponse);
+    }
