@@ -1,9 +1,16 @@
-Initially I suspect the root cause of the issue was as follows.
+Hi Amit/Anita,
 
-When updating the "cardholder and administrator information" from the UI—specifically, when updating the KYC_RELATED_PARTY parent table, which stores and updates the KYC address in the associated KYC_ADDRESS child table—Hibernate attempted to insert a new KYC_ADDRESS record. This resulted in a duplicate identifier error. This likely occurred because Hibernate was not aware that the KYC_ADDRESS object already existed and should have been updated rather than inserted.
+We have fixed the following Mobile view priority issues that are reported.
+Get in touch link is broken
+Biz360 logo in header is missing in Features & Pricing pages
+The changes are deployed to STAGE so please start testing these & any related use cases, run the regression suite, collect the evidences and share with them within this group.
 
-To address this, I implemented a fix and submitted a PR here: PR #175.
+Minisite version: 1.6.28
+Component lib version: 1.3.90
 
-However, after reviewing the issue today in the UAT environment—following a UAT database reset—the reported use case appears to be functioning correctly, and the issue no longer occurs. This suggests that the problem was due to corrupted data in the database.
+Please note that these are not show stoppers for the ongoing PROD release and we are planning to provide these changes as hot fix later.
 
-Therefore, I am resolving this ticket and reassigning it to Susmita for further validation.
+Thanks for your support.
+
+Thanks,
+Chandra
