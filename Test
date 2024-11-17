@@ -1,25 +1,78 @@
-@Override
-    public PSOResponse getClientCreditDetails(String ecid) {
-        PSOResponse psoResponse = null;
-        if (wfdsEnabled) {
-            psoResponse = new PSOResponse();
-            String ucn = null;
-            try {
-                ucn = commonUtilityService.getUcn(ecid);
-                log.info("UCN: {}", ucn);
-            } catch (Exception e) {
-                log.error("Exception while getting ucn : ", e);
-            }
-            WFDSResponse wfdsResponse = commonUtilityService.getClientFacilityList(ucn);
-            List<FacilityInfo> facilityList = commonUtilityService.getFacilityInfo(wfdsResponse);
-            if (!CollectionUtils.isEmpty(facilityList)) {
-                psoResponse.setResult(facilityList.get(0));
-            } else {
-                psoResponse.setResult(null);
-            }
-        } else {
-            String url = psoBaseUrl + "/api/commcard/credit-details?ecid=" + ecid;
-            psoResponse = getPSOResponse(ecid, url);
-        }
-        return psoResponse;
-    }
+import React from 'react';
+import { Meta, Story } from '@storybook/react';
+import { Video, VideoComponentProps } from './Video';
+
+export default {
+  title: 'Components/Video',
+  component: Video,
+  argTypes: {
+    source: { control: 'text' },
+    type: { control: 'text' },
+    controls: { control: 'boolean' },
+    autoplay: { control: 'boolean' },
+    loop: { control: 'boolean' },
+    muted: { control: 'boolean' },
+    className: { control: 'text' },
+    poster: { control: 'text' },
+    width: { control: 'text' },
+    height: { control: 'text' },
+  },
+} as Meta;
+
+const Template: Story<VideoComponentProps> = (args) => <Video {...args} />;
+
+export const Default = Template.bind({});
+Default.args = {
+  source: 'https://www.w3schools.com/html/mov_bbb.mp4',
+  type: 'video/mp4',
+  controls: true,
+  autoplay: false,
+  loop: false,
+  muted: false,
+  className: 'default-video',
+  poster: 'https://via.placeholder.com/150',
+  width: '640px',
+  height: '360px',
+};
+
+export const AutoPlayMuted = Template.bind({});
+AutoPlayMuted.args = {
+  source: 'https://www.w3schools.com/html/mov_bbb.mp4',
+  type: 'video/mp4',
+  controls: true,
+  autoplay: true,
+  loop: true,
+  muted: true,
+  className: 'autoplay-muted-video',
+  poster: 'https://via.placeholder.com/150',
+  width: '640px',
+  height: '360px',
+};
+
+export const CustomSize = Template.bind({});
+CustomSize.args = {
+  source: 'https://www.w3schools.com/html/mov_bbb.mp4',
+  type: 'video/mp4',
+  controls: true,
+  autoplay: false,
+  loop: false,
+  muted: false,
+  className: 'custom-size-video',
+  poster: 'https://via.placeholder.com/150',
+  width: '800px',
+  height: '450px',
+};
+
+export const WithoutControls = Template.bind({});
+WithoutControls.args = {
+  source: 'https://www.w3schools.com/html/mov_bbb.mp4',
+  type: 'video/mp4',
+  controls: false,
+  autoplay: true,
+  loop: false,
+  muted: false,
+  className: 'without-controls-video',
+  poster: 'https://via.placeholder.com/150',
+  width: '640px',
+  height: '360px',
+};
