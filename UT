@@ -1,62 +1,51 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import { useEffect, useRef } from 'react';
+import './video.css';
 
-const VideoPlayer = ({
-  src,
-  type = 'video/mp4',
-  controls = true,
-  autoplay = false,
-  loop = false,
-  muted = false,
-  className = '',
-  poster = '',
-}) => (
-  <video
-    className={className}
-    controls={controls}
-    autoPlay={autoplay}
-    loop={loop}
-    muted={muted}
-    poster={poster}
-    style={{ maxWidth: '100%', maxHeight: '100%' }}
-  >
-    <source src={src} type={type} />
-    Your browser does not support the video tag.
-  </video>
-);
+export interface VideoComponentProps {
+	source: string; // Source of the video file
+	type: string; // Type of the video (default is 'video/mp4')
+	controls?: boolean; // Show video controls (default is true)
+	autoplay?: boolean; // Auto play video (default is false)
+	loop?: boolean; // Loop video (default is false)
+	muted: boolean; // Mute video (default is false)
+	className: string; // Custom class name
+	poster: string; // Poster image for video
+	width?: string; // Sets the width of the video player
+	height?: string; //Sets the height of the video player
+}
 
-VideoPlayer.propTypes = {
-  src: PropTypes.string.isRequired,     // Source of the video file
-  type: PropTypes.string,               // Type of the video (default is 'video/mp4')
-  controls: PropTypes.bool,             // Show video controls (default is true)
-  autoplay: PropTypes.bool,             // Auto play video (default is false)
-  loop: PropTypes.bool,                 // Loop video (default is false)
-  muted: PropTypes.bool,                // Mute video (default is false)
-  className: PropTypes.string,          // Custom class name
-  poster: PropTypes.string,             // Poster image for video
+export const Video = ({
+	source,
+	type,
+	controls,
+	autoplay,
+	loop,
+	muted,
+	className = 'made-c-video-component',
+	poster,
+	width,
+	height,
+}: VideoComponentProps) => {
+	const videoRef = useRef(null);
+
+	// this hook is used to update any of the video component properties later
+	useEffect(() => {});
+
+	return (
+		<Video
+			ref={videoRef}
+			src={source}
+			type={type}
+			controls={controls}
+			autoPlay={autoplay}
+			loop={loop}
+			muted={muted}
+			className={className}
+			poster={poster}
+			width={width}
+			height={height}
+		>
+			Your browser does not support the video tag.
+		</Video>
+	);
 };
-
-export default VideoPlayer;
-
-
-
-
-import React from 'react';
-import VideoPlayer from './VideoPlayer';
-
-const App = () => (
-  <div>
-    <h1>My Video Player</h1>
-    <VideoPlayer
-      src="https://www.example.com/path-to-your-video.mp4"
-      controls={true}
-      autoplay={false}
-      loop={false}
-      muted={false}
-      poster="https://www.example.com/path-to-poster-image.jpg"
-      className="my-custom-video-class"
-    />
-  </div>
-);
-
-export default App;
