@@ -118,3 +118,23 @@ describe('Video Component', () => {
 <video controls="" class="default-video" poster="https://via.placeholder.com/150" width="640px" height="360px" data-testid="video-component-element"><source src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" type="video/mp4">Your browser does not support the video tag. Please try viewing this page in a modern browser.</video>
 
 
+const videoElement = getByTestId('video-component-element');
+
+		// Check video attributes
+		expect(videoElement).toBeInTheDocument();
+		expect(videoElement).toHaveAttribute(
+			'poster',
+			'https://via.placeholder.com/150'
+		);
+		expect(videoElement).toHaveAttribute('width', '640px');
+		expect(videoElement).toHaveAttribute('height', '360px');
+		expect(videoElement).toHaveAttribute('class', 'default-video');
+
+		// Check <source> tag attributes
+		const sourceElement = videoElement.querySelector('source');
+		expect(sourceElement).toBeInTheDocument();
+		expect(sourceElement).toHaveAttribute(
+			'src',
+			'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+		);
+		expect(sourceElement).toHaveAttribute('type', 'video/mp4');
