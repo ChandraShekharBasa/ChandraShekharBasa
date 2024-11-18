@@ -79,3 +79,39 @@ describe('Video Component', () => {
 	});
 });
 
+
+import React from 'react';
+import { render } from '@testing-library/react';
+
+import { Video } from './index';
+
+describe('Video Component', () => {
+	test('Video component renders with correct attributes', () => {
+		const { getByTestId } = render(
+			<Video
+				source="test.mp4"
+				type="video/mp4"
+				controls={true}
+				autoplay={false}
+				loop={false}
+				muted={false}
+				className="made-c-video-component"
+				poster="https://via.placeholder.com/150"
+				width="640px"
+				height="360px"
+			/>
+		);
+
+		const videoElement = getByTestId('video-component-element');
+
+		// Check video attributes
+		expect(videoElement).toBeInTheDocument();
+		expect(videoElement).toHaveAttribute('src', 'test.mp4');
+		expect(videoElement).toHaveAttribute('class', 'made-c-video-component');
+		expect(videoElement).toHaveAttribute('poster', 'https://via.placeholder.com/150');
+		expect(videoElement).toHaveAttribute('width', '640px');
+		expect(videoElement).toHaveAttribute('height', '360px');
+	});
+});
+
+
