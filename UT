@@ -49,3 +49,33 @@ export const Video = ({
 		</Video>
 	);
 };
+
+import React from 'react';
+import { render } from '@testing-library/react';
+
+import { Video } from './index';
+
+describe('Video Component', () => {
+	test('Video component to load with configuration', async () => {
+		const { getByRole, getByTestId } = render(
+			<Video
+				source="test.mp4"
+				type="video/mp4"
+				controls={true}
+				autoplay={false}
+				loop={false}
+				muted={false}
+				className="made-c-video-component"
+				poster="https://via.placeholder.com/150"
+				width="640px"
+				height="360px"
+			/>,
+		);
+
+		expect(getByTestId('video-component-element')).toBeInTheDocument();
+		expect(getByTestId('video-component-element')).toHaveTextContent(
+			'Your browser does not support the video tag. Please try viewing this page in a modern browser',
+		);
+	});
+});
+
