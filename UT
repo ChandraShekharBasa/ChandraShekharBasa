@@ -115,3 +115,6 @@ describe('Video Component', () => {
 });
 
 
+<video controls="" class="default-video" poster="https://via.placeholder.com/150" width="640px" height="360px" data-testid="video-component-element"><source src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" type="video/mp4">Your browser does not support the video tag. Please try viewing this page in a modern browser.</video>
+
+
