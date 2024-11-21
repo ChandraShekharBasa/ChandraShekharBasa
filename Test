@@ -1,78 +1,94 @@
-import React from 'react';
-import { Meta, Story } from '@storybook/react';
-import { Video, VideoComponentProps } from './Video';
+@Transactional
+    @Override
+    public KYCInformationDTO confirmSection(Long kycId, String sectionName, boolean status, String userId, String ipAddress, boolean isInternal) throws DownstreamServicesException {
+        //use service
+        appLogger.info("Inside confirmSection:>>>>>");
+        KYCInformationEntity kycInformationEntity = kycInformationRepository.findById(kycId)
+                .orElseThrow(() -> new OnboardingBadRequestException(UIErrorCode.NOT_FOUND, "No KYC record found for kycId provided: " + kycId, MDC.get(CommonConstants.TRACEID)));
+        KYCInformationDTO kycInformationDTO = KycInformationMapper.toKycInformationDTO(kycInformationEntity);
+        appLogger.debug("Confirm Section Name {} & status {}", sectionName, status);
+        switch (sectionName) {
+            case "hasClientStartedOnboarding":
+                kycInformationDTO.setHasClientStartedOnboarding(status);
+                break;
+            case "docUpload":
+                kycInformationDTO.setIsDocUploadConfirmed(status);
+                break;
+            case "businessOperations":
+                kycInformationDTO.setIsBusOpsConfirmed(status);
+                break;
+            case "paymentRebateAccounts":
+                kycInformationDTO.setIsPaymentConfirmed(status);
+                break;
+            case "businessInformation":
+                kycInformationDTO.setIsBusInfoConfirmed(status);
+                if(cmlCardProductService.isProductAndOneCardReward(kycId, kycInformationDTO)) {
+                    kycInformationDTO.setHasClientStartedOnboarding(status);
+                }
+                break;
+            case "relatedParties":
+                kycInformationDTO.setIsRelatedPartiesConfirmed(status);
+                break;
+            case "account":
+                kycInformationDTO.setIsAccountInfoConfirmed(envelopeService.getW9Status(kycId));
+                break;
+            case "review":
+                if (status && Boolean.TRUE.equals(!cmlCardProductService.isProductAndOneCardReward(kycId, kycInformationDTO.getRequestType()))) {
+                    kycInformationDTO.setIsRelatedPartiesConfirmed(true);
+                    kycInformationDTO.setIsDocUploadConfirmed(true);
+                    kycInformationDTO.setIsBusInfoConfirmed(true);
+                    kycInformationDTO.setIsBusOpsConfirmed(true);
+                    kycInformationDTO.setIsPaymentConfirmed(true);
+                    if (COLTConstants.TSX_RQST_TYPE.equals(kycInformationDTO.getRequestType())) {
+                        kycInformationDTO.setIsAccountInfoConfirmed(true);
+                    }
+                    if (COLTConstants.TSX_RQST_TYPE.equals(kycInformationDTO.getRequestType()) && !kycInformationDTO.getHasClientStartedOnboarding()) {
+                        kycInformationDTO.setHasClientStartedOnboarding(true);
+                    }
+                }
+                kycInformationDTO.setIsKYCInfoConfirmed(status);
+                kycInformationDTO.setKycInfoConfirmedDate(new Timestamp(System.currentTimeMillis()));
+                kycInformationDTO.setKycInfoConfirmedByUUID(userId);
+                kycInformationDTO.setIpAddress(ipAddress);
+                break;
+            default:
+                MDC.put(CommonConstants.ERROR_CODE, LoggingErrorCodes.VALIDATION_ERROR);
+                appLogger.error("Incorrect section name provided. Provided values are: kycId {}, sectionName {}, status {}",
+                        kycId, sectionName, status
+                );
+                throw new OnboardingBadRequestException(UIErrorCode.INVALID_PARAMS, "Incorrect section name provided. Value was: " + sectionName, MDC.get(CommonConstants.TRACEID));
+        }
+        kycInformationDTO.setUpdatedByUuid(userId);
+        kycInformationDTO.setUpdatedDate(new Timestamp(System.currentTimeMillis()));
+        if (!isInternal) {
+            kycInformationDTO.setLastUpdatedExternalUUID(userId);
+            kycInformationDTO.setLastUpdatedExternalDate(new Timestamp(System.currentTimeMillis()));
+        }
+       // For new Clients we have to update BillingGroupAccountNumb
+        if (COLTConstants.TSX_RQST_TYPE.equals(kycInformationDTO.getRequestType()) && !org.springframework.util.StringUtils.hasText(kycInformationDTO.getChannelProfileId())) {
+            KYCDetails kycDetails= getKycDetails(kycId,true);
+            appLogger.info("Succesfully Fetched Kyc Details for the TSX Request - kycId:{}",new Gson().toJson(kycDetails),kycId);
+            Optional<AccountDTO> accountDto = Optional.ofNullable(
+                    kycDetails.getAccounts().stream().filter(acc -> acc.getIsPrimaryAccount())
+                            .findFirst().orElse(null));
+            String billingGrpAccNb= accountDto.isPresent() ? accountDto.get().getAccountNumber():null;
+            appLogger.info("Updating Billing Group Account Number :{} for  kycId:{}", billingGrpAccNb,kycId);
+            kycInformationDTO.setBillingGroupAccountNumber(billingGrpAccNb);
+            appLogger.info("Billing Group AccountNumber:{} is updated for new Clients for kycId:{} ", billingGrpAccNb, kycId);
+        }
+        KYCInformationEntity savedKycInfo = kycInformationRepository.saveAndFlush(KycInformationMapper.toKycInformationEntity(kycInformationDTO, kycInformationEntity));
 
-export default {
-  title: 'Components/Video',
-  component: Video,
-  argTypes: {
-    source: { control: 'text' },
-    type: { control: 'text' },
-    controls: { control: 'boolean' },
-    autoplay: { control: 'boolean' },
-    loop: { control: 'boolean' },
-    muted: { control: 'boolean' },
-    className: { control: 'text' },
-    poster: { control: 'text' },
-    width: { control: 'text' },
-    height: { control: 'text' },
-  },
-} as Meta;
+        appLogger.info("KYC Information Confirmed for  Section {} & status {}", sectionName, status);
 
-const Template: Story<VideoComponentProps> = (args) => <Video {...args} />;
-
-export const Default = Template.bind({});
-Default.args = {
-  source: 'https://www.w3schools.com/html/mov_bbb.mp4',
-  type: 'video/mp4',
-  controls: true,
-  autoplay: false,
-  loop: false,
-  muted: false,
-  className: 'default-video',
-  poster: 'https://via.placeholder.com/150',
-  width: '640px',
-  height: '360px',
-};
-
-export const AutoPlayMuted = Template.bind({});
-AutoPlayMuted.args = {
-  source: 'https://www.w3schools.com/html/mov_bbb.mp4',
-  type: 'video/mp4',
-  controls: true,
-  autoplay: true,
-  loop: true,
-  muted: true,
-  className: 'autoplay-muted-video',
-  poster: 'https://via.placeholder.com/150',
-  width: '640px',
-  height: '360px',
-};
-
-export const CustomSize = Template.bind({});
-CustomSize.args = {
-  source: 'https://www.w3schools.com/html/mov_bbb.mp4',
-  type: 'video/mp4',
-  controls: true,
-  autoplay: false,
-  loop: false,
-  muted: false,
-  className: 'custom-size-video',
-  poster: 'https://via.placeholder.com/150',
-  width: '800px',
-  height: '450px',
-};
-
-export const WithoutControls = Template.bind({});
-WithoutControls.args = {
-  source: 'https://www.w3schools.com/html/mov_bbb.mp4',
-  type: 'video/mp4',
-  controls: false,
-  autoplay: true,
-  loop: false,
-  muted: false,
-  className: 'without-controls-video',
-  poster: 'https://via.placeholder.com/150',
-  width: '640px',
-  height: '360px',
-};
+        // Retrieve products for the "Products" type and map it to KYCInformationDTO response object
+        List<Product> products = Collections.emptyList();
+        if (COLTConstants.PRODUCTS_TYPE.equals(kycInformationDTO.getRequestType())) {
+            appLogger.info("Retrieving the Products for the KYC request type:{} & kycId:{}", kycInformationDTO.getRequestType(), kycId);
+            products = cmlCardProductService.getProductsForKYC(kycInformationDTO.getKycId());
+        }
+        if (products.isEmpty()){
+            return KycInformationMapper.toKycInformationDTO(savedKycInfo);
+        } else {
+            return KycInformationMapper.toKycInformationDTO(savedKycInfo, products);
+        }
+    }
