@@ -1,140 +1,84 @@
-import { useEffect, useRef } from 'react';
-import './video.css';
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-export interface VideoComponentProps {
-	source: string; // Source of the video file
-	type: string; // Type of the video (default is 'video/mp4')
-	controls?: boolean; // Show video controls (default is true)
-	autoplay?: boolean; // Auto play video (default is false)
-	loop?: boolean; // Loop video (default is false)
-	muted: boolean; // Mute video (default is false)
-	className: string; // Custom class name
-	poster: string; // Poster image for video
-	width?: string; // Sets the width of the video player
-	height?: string; //Sets the height of the video player
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+@ExtendWith(MockitoExtension.class)
+class KYCInformationServiceTest {
+
+    @Mock
+    private KYCInformationRepository kycInformationRepository;
+
+    @Mock
+    private CmlCardProductService cmlCardProductService;
+
+    @Mock
+    private KycInformationMapper kycInformationMapper;
+
+    @InjectMocks
+    private KYCInformationService kycInformationService;
+
+    @Test
+    void testConfirmSection_WhenRequestTypeIsProductsAndNoProducts() throws Exception {
+        Long kycId = 123L;
+        String sectionName = "review";
+        boolean status = true;
+        String userId = "user123";
+        String ipAddress = "127.0.0.1";
+        boolean isInternal = false;
+
+        KYCInformationEntity mockEntity = new KYCInformationEntity();
+        KYCInformationDTO mockDTO = new KYCInformationDTO();
+        mockDTO.setRequestType(COLTConstants.PRODUCTS_TYPE);
+
+        when(kycInformationRepository.findById(kycId)).thenReturn(Optional.of(mockEntity));
+        when(KycInformationMapper.toKycInformationDTO(mockEntity)).thenReturn(mockDTO);
+        when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(Collections.emptyList());
+        when(kycInformationRepository.saveAndFlush(any(KYCInformationEntity.class))).thenReturn(mockEntity);
+        when(KycInformationMapper.toKycInformationDTO(mockEntity)).thenReturn(mockDTO);
+
+        KYCInformationDTO result = kycInformationService.confirmSection(kycId, sectionName, status, userId, ipAddress, isInternal);
+
+        verify(kycInformationRepository, times(1)).findById(kycId);
+        verify(cmlCardProductService, times(1)).getProductsForKYC(kycId);
+        verify(KycInformationMapper, times(1)).toKycInformationDTO(mockEntity);
+        assertEquals(mockDTO, result);
+    }
+
+    @Test
+    void testConfirmSection_WhenRequestTypeIsProductsAndProductsExist() throws Exception {
+        Long kycId = 123L;
+        String sectionName = "review";
+        boolean status = true;
+        String userId = "user123";
+        String ipAddress = "127.0.0.1";
+        boolean isInternal = false;
+
+        KYCInformationEntity mockEntity = new KYCInformationEntity();
+        KYCInformationDTO mockDTO = new KYCInformationDTO();
+        mockDTO.setRequestType(COLTConstants.PRODUCTS_TYPE);
+
+        List<Product> mockProducts = List.of(new Product());
+        KYCInformationDTO mockDTOWithProducts = new KYCInformationDTO();
+
+        when(kycInformationRepository.findById(kycId)).thenReturn(Optional.of(mockEntity));
+        when(KycInformationMapper.toKycInformationDTO(mockEntity)).thenReturn(mockDTO);
+        when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(mockProducts);
+        when(kycInformationRepository.saveAndFlush(any(KYCInformationEntity.class))).thenReturn(mockEntity);
+        when(KycInformationMapper.toKycInformationDTO(mockEntity, mockProducts)).thenReturn(mockDTOWithProducts);
+
+        KYCInformationDTO result = kycInformationService.confirmSection(kycId, sectionName, status, userId, ipAddress, isInternal);
+
+        verify(kycInformationRepository, times(1)).findById(kycId);
+        verify(cmlCardProductService, times(1)).getProductsForKYC(kycId);
+        verify(KycInformationMapper, times(1)).toKycInformationDTO(mockEntity, mockProducts);
+        assertEquals(mockDTOWithProducts, result);
+    }
 }
-
-export const Video = ({
-	source,
-	type,
-	controls,
-	autoplay,
-	loop,
-	muted,
-	className = 'made-c-video-component',
-	poster,
-	width,
-	height,
-}: VideoComponentProps) => {
-	const videoRef = useRef(null);
-
-	// this hook is used to update any of the video component properties later
-	useEffect(() => {});
-
-	return (
-		<Video
-			ref={videoRef}
-			src={source}
-			type={type}
-			controls={controls}
-			autoPlay={autoplay}
-			loop={loop}
-			muted={muted}
-			className={className}
-			poster={poster}
-			width={width}
-			height={height}
-		>
-			Your browser does not support the video tag.
-		</Video>
-	);
-};
-
-import React from 'react';
-import { render } from '@testing-library/react';
-
-import { Video } from './index';
-
-describe('Video Component', () => {
-	test('Video component to load with configuration', async () => {
-		const { getByRole, getByTestId } = render(
-			<Video
-				source="test.mp4"
-				type="video/mp4"
-				controls={true}
-				autoplay={false}
-				loop={false}
-				muted={false}
-				className="made-c-video-component"
-				poster="https://via.placeholder.com/150"
-				width="640px"
-				height="360px"
-			/>,
-		);
-
-		expect(getByTestId('video-component-element')).toBeInTheDocument();
-		expect(getByTestId('video-component-element')).toHaveTextContent(
-			'Your browser does not support the video tag. Please try viewing this page in a modern browser',
-		);
-	});
-});
-
-
-import React from 'react';
-import { render } from '@testing-library/react';
-
-import { Video } from './index';
-
-describe('Video Component', () => {
-	test('Video component renders with correct attributes', () => {
-		const { getByTestId } = render(
-			<Video
-				source="test.mp4"
-				type="video/mp4"
-				controls={true}
-				autoplay={false}
-				loop={false}
-				muted={false}
-				className="made-c-video-component"
-				poster="https://via.placeholder.com/150"
-				width="640px"
-				height="360px"
-			/>
-		);
-
-		const videoElement = getByTestId('video-component-element');
-
-		// Check video attributes
-		expect(videoElement).toBeInTheDocument();
-		expect(videoElement).toHaveAttribute('src', 'test.mp4');
-		expect(videoElement).toHaveAttribute('class', 'made-c-video-component');
-		expect(videoElement).toHaveAttribute('poster', 'https://via.placeholder.com/150');
-		expect(videoElement).toHaveAttribute('width', '640px');
-		expect(videoElement).toHaveAttribute('height', '360px');
-	});
-});
-
-
-<video controls="" class="default-video" poster="https://via.placeholder.com/150" width="640px" height="360px" data-testid="video-component-element"><source src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" type="video/mp4">Your browser does not support the video tag. Please try viewing this page in a modern browser.</video>
-
-
-const videoElement = getByTestId('video-component-element');
-
-		// Check video attributes
-		expect(videoElement).toBeInTheDocument();
-		expect(videoElement).toHaveAttribute(
-			'poster',
-			'https://via.placeholder.com/150'
-		);
-		expect(videoElement).toHaveAttribute('width', '640px');
-		expect(videoElement).toHaveAttribute('height', '360px');
-		expect(videoElement).toHaveAttribute('class', 'default-video');
-
-		// Check <source> tag attributes
-		const sourceElement = videoElement.querySelector('source');
-		expect(sourceElement).toBeInTheDocument();
-		expect(sourceElement).toHaveAttribute(
-			'src',
-			'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
-		);
-		expect(sourceElement).toHaveAttribute('type', 'video/mp4');
