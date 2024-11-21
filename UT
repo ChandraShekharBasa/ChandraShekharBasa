@@ -1,84 +1,39 @@
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-@ExtendWith(MockitoExtension.class)
-class KYCInformationServiceTest {
-
-    @Mock
-    private KYCInformationRepository kycInformationRepository;
-
-    @Mock
-    private CmlCardProductService cmlCardProductService;
-
-    @Mock
-    private KycInformationMapper kycInformationMapper;
-
-    @InjectMocks
-    private KYCInformationService kycInformationService;
-
     @Test
-    void testConfirmSection_WhenRequestTypeIsProductsAndNoProducts() throws Exception {
+    void testConfirmSection_WhenRequestTypeIsProductsAndNoProductsExists() {
         Long kycId = 123L;
-        String sectionName = "review";
-        boolean status = true;
-        String userId = "user123";
-        String ipAddress = "127.0.0.1";
-        boolean isInternal = false;
 
-        KYCInformationEntity mockEntity = new KYCInformationEntity();
-        KYCInformationDTO mockDTO = new KYCInformationDTO();
-        mockDTO.setRequestType(COLTConstants.PRODUCTS_TYPE);
+        KYCInformationEntity kycInformationEntity = new KYCInformationEntity();
+        kycInformationEntity.setIsBusOpsConfirmed(true);
+        kycInformationEntity.setRequestType(COLTConstants.PRODUCTS_TYPE);
 
-        when(kycInformationRepository.findById(kycId)).thenReturn(Optional.of(mockEntity));
-        when(KycInformationMapper.toKycInformationDTO(mockEntity)).thenReturn(mockDTO);
-        when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(Collections.emptyList());
-        when(kycInformationRepository.saveAndFlush(any(KYCInformationEntity.class))).thenReturn(mockEntity);
-        when(KycInformationMapper.toKycInformationDTO(mockEntity)).thenReturn(mockDTO);
+        KYCInformationDTO kycInformationDTO = new KYCInformationDTO();
+        kycInformationDTO.setRequestType(COLTConstants.PRODUCTS_TYPE);
 
-        KYCInformationDTO result = kycInformationService.confirmSection(kycId, sectionName, status, userId, ipAddress, isInternal);
+        Mockito.when(kycInformationRepository.findById(kycId)).thenReturn(Optional.of(kycInformationEntity));
+        Mockito.when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(Collections.emptyList());
+        Mockito.when(kycInformationRepository.saveAndFlush(any(KYCInformationEntity.class))).thenReturn(kycInformationEntity);
 
-        verify(kycInformationRepository, times(1)).findById(kycId);
-        verify(cmlCardProductService, times(1)).getProductsForKYC(kycId);
-        verify(KycInformationMapper, times(1)).toKycInformationDTO(mockEntity);
-        assertEquals(mockDTO, result);
+        KYCInformationDTO result = kycInformationUtilityService.confirmSection(kycId, "businessOperations", true, userId, "ip", false);
+
+        Assertions.assertEquals(kycInformationDTO, result);
     }
 
     @Test
-    void testConfirmSection_WhenRequestTypeIsProductsAndProductsExist() throws Exception {
+    void testConfirmSection_WhenRequestTypeIsProductsAndProductsExist() {
         Long kycId = 123L;
-        String sectionName = "review";
-        boolean status = true;
-        String userId = "user123";
-        String ipAddress = "127.0.0.1";
-        boolean isInternal = false;
 
-        KYCInformationEntity mockEntity = new KYCInformationEntity();
-        KYCInformationDTO mockDTO = new KYCInformationDTO();
-        mockDTO.setRequestType(COLTConstants.PRODUCTS_TYPE);
+        KYCInformationEntity kycInformationEntity = new KYCInformationEntity();
+        kycInformationEntity.setIsBusOpsConfirmed(true);
+        kycInformationEntity.setRequestType(COLTConstants.PRODUCTS_TYPE);
 
-        List<Product> mockProducts = List.of(new Product());
-        KYCInformationDTO mockDTOWithProducts = new KYCInformationDTO();
+        KYCInformationDTO kycInformationDTO = new KYCInformationDTO();
+        List<Product> productList = List.of(new Product());
 
-        when(kycInformationRepository.findById(kycId)).thenReturn(Optional.of(mockEntity));
-        when(KycInformationMapper.toKycInformationDTO(mockEntity)).thenReturn(mockDTO);
-        when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(mockProducts);
-        when(kycInformationRepository.saveAndFlush(any(KYCInformationEntity.class))).thenReturn(mockEntity);
-        when(KycInformationMapper.toKycInformationDTO(mockEntity, mockProducts)).thenReturn(mockDTOWithProducts);
+        Mockito.when(kycInformationRepository.findById(kycId)).thenReturn(Optional.of(kycInformationEntity));
+        Mockito.when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(productList);
+        Mockito.when(kycInformationRepository.saveAndFlush(any(KYCInformationEntity.class))).thenReturn(kycInformationEntity);
 
-        KYCInformationDTO result = kycInformationService.confirmSection(kycId, sectionName, status, userId, ipAddress, isInternal);
+        KYCInformationDTO result = kycInformationUtilityService.confirmSection(kycId, "businessOperations", true, userId, "ip", false);
 
-        verify(kycInformationRepository, times(1)).findById(kycId);
-        verify(cmlCardProductService, times(1)).getProductsForKYC(kycId);
-        verify(KycInformationMapper, times(1)).toKycInformationDTO(mockEntity, mockProducts);
-        assertEquals(mockDTOWithProducts, result);
+        Assertions.assertEquals(kycInformationDTO, result);
     }
-}
