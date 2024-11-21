@@ -3,3 +3,10 @@ ERROR] Failures:
 [ERROR]   KYCInformationUtilityServiceImplTest.testConfirmSection_WhenRequestTypeIsProductsAndProductsExist:982 expected: <net.jpmchase.cbuo.onboarding.Model.KYCInformationDTO@410a1e0a> but was: <net.jpmchase.cbuo.onboarding.Model.KYCInformationDTO@1877e927>
 [INFO] 
 [ERROR] Tests run: 1669, Failures: 2, Errors: 0, Skipped: 12
+
+
+
+Assertions.assertEquals(kycInformationDTO.getRequestType(), result.getRequestType());
+Assertions.assertEquals(kycInformationDTO.getIsBusOpsConfirmed(), result.getIsBusOpsConfirmed());
+// Compare other fields as necessary.
+
