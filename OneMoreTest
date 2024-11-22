@@ -1,21 +1,73 @@
-@Test
-void testInitiateAsyncClientOnboardingOps_acceleratorCardFlow() throws Exception {
-    Long kycId = 1L;
-    String uuid = "uuid";
-    String ipAddress = "127.0.0.1";
-    boolean isReprocess = false;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.ArgumentCaptor;
+import org.springframework.util.CollectionUtils;
 
-    KYCInformationDTO kycInformation = mock(KYCInformationDTO.class);
-    CmlCardBaseDTO cmlCardBaseDTO = mock(CmlCardBaseDTO.class);
-    List<Product> products = List.of(new Product(COLTConstants.ACCELERATOR_CARD));
+import java.util.Arrays;
+import java.util.List;
 
-    when(kycInformationUtilityService.getKycInformation(kycId)).thenReturn(kycInformation);
-    when(kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation)).thenReturn(true);
-    when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(products);
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-    serviceClass.initiateAsyncClientOnboardingOps(kycId, uuid, ipAddress, isReprocess);
+class AsyncOnboardingServiceTest {
 
-    verify(kycInformationUtilityService, times(1)).getKycInformation(kycId);
-    verify(cmlCardProductService, times(1)).getProductsForKYC(kycId);
-    // Add other verifications depending on expected behavior
+    @InjectMocks
+    private AsyncOnboardingService asyncOnboardingService; // Replace with your actual service class
+
+    @Mock
+    private KYCInformationUtilityService kycInformationUtilityService;
+
+    @Mock
+    private CmlCardProductService cmlCardProductService;
+
+    @Mock
+    private DocManagementService docManagementService;
+
+    @Mock
+    private AppLogger appLogger;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testInitiateAsyncClientOnboardingOps_AcceleratorCard() throws Exception {
+        Long kycId = 123L;
+        String uuid = "test-uuid";
+        String ipAddress = "192.168.1.1";
+        boolean isReprocess = false;
+
+        // Mock data
+        KYCInformationDTO kycInformation = new KYCInformationDTO();
+        Product product = new Product();
+        product.setType(COLTConstants.ACCELERATOR_CARD);
+
+        List<Product> products = Arrays.asList(product);
+
+        // Mock behaviors
+        when(kycInformationUtilityService.getKycInformation(kycId)).thenReturn(kycInformation);
+        when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(products);
+        when(kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation)).thenReturn(true);
+
+        // Run the test
+        asyncOnboardingService.initiateAsyncClientOnboardingOps(kycId, uuid, ipAddress, isReprocess);
+
+        // Verify the acceleratorCardSubmitFlow method is called
+        ArgumentCaptor<Long> kycIdCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(kycInformationUtilityService).getKycInformation(kycIdCaptor.capture());
+        assertEquals(kycId, kycIdCaptor.getValue());
+
+        verify(cmlCardProductService).getProductsForKYC(kycId);
+        verify(kycInformationUtilityService).isRegularCardRequest(kycId, kycInformation);
+        verifyNoMoreInteractions(docManagementService); // Example for no unnecessary calls
+
+        // Additional verifications for acceleratorCardSubmitFlow can be added
+    }
 }
