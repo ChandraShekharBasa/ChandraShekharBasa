@@ -1,9 +1,21 @@
-   // Create a list of strings
-        List<String> stringList = Arrays.asList("one", "two", "three");
+@Test
+void testInitiateAsyncClientOnboardingOps_acceleratorCardFlow() throws Exception {
+    Long kycId = 1L;
+    String uuid = "uuid";
+    String ipAddress = "127.0.0.1";
+    boolean isReprocess = false;
 
-        // Set the headers
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Content-Type", "application/json");
+    KYCInformationDTO kycInformation = mock(KYCInformationDTO.class);
+    CmlCardBaseDTO cmlCardBaseDTO = mock(CmlCardBaseDTO.class);
+    List<Product> products = List.of(new Product(COLTConstants.ACCELERATOR_CARD));
 
-        // Create the request entity (contains the payload and headers)
-        HttpEntity<List<String>> requestEntity = new HttpEntity<>(stringList, headers);
+    when(kycInformationUtilityService.getKycInformation(kycId)).thenReturn(kycInformation);
+    when(kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation)).thenReturn(true);
+    when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(products);
+
+    serviceClass.initiateAsyncClientOnboardingOps(kycId, uuid, ipAddress, isReprocess);
+
+    verify(kycInformationUtilityService, times(1)).getKycInformation(kycId);
+    verify(cmlCardProductService, times(1)).getProductsForKYC(kycId);
+    // Add other verifications depending on expected behavior
+}
