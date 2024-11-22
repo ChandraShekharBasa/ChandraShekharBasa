@@ -1,47 +1,95 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
 import static org.mockito.Mockito.*;
 
 class AcceleratorCardSubmitFlowTest {
 
     @Mock
+    private KYCInformationUtilityService kycInformationUtilityService;
+
+    @Mock
     private DocManagementService docManagementService;
 
     @Mock
-    private AppLogger appLogger;
-
-    @Mock
-    private KycInformationUtilityService kycInformationUtilityService;
+    private Logger appLogger;
 
     @InjectMocks
-    private YourServiceClass service; // Replace with your actual service class
+    private YourServiceClass serviceClass; // Replace with the actual service class name
+
+    private Gson gson;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        gson = new GsonBuilder().serializeSpecialFloatingPointValues().serializeNulls().create();
+    }
 
     @Test
-    void testCapTISIndexingAndSubmission() throws Exception {
-        // Arrange
-        MockitoAnnotations.openMocks(this);
-        Long kycId = 123L;
-        String uuid = "test-uuid";
-        String ipAddress = "192.168.1.1";
+    void testAcceleratorCardSubmitFlow_generateCcaPdf() throws Exception {
+        Long kycId = 1L;
+        String uuid = "uuid";
+        String ipAddress = "127.0.0.1";
+        boolean isReprocess = false;
+
         KYCInformationDTO kycInformation = mock(KYCInformationDTO.class);
-        when(kycInformation.getParentKycId()).thenReturn(456L);
+        CmlCardBaseDTO cmlCardBaseDTO = mock(CmlCardBaseDTO.class);
 
-        // Mocking dependencies
-        when(docManagementService.isCAPTISDocIdIndexed(456L, COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE)).thenReturn(false);
-        when(docManagementService.isCAPTISDocIdIndexed(456L, COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC)).thenReturn(false);
+        when(kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation)).thenReturn(true);
 
-        // Act
-        service.privateAcceleratorCardSubmitFlow(kycId, uuid, ipAddress, false, kycInformation, null, null);
+        serviceClass.acceleratorCardSubmitFlow(kycId, uuid, ipAddress, isReprocess, kycInformation, cmlCardBaseDTO, gson);
 
-        // Assert
-        verify(docManagementService).isCAPTISDocIdIndexed(456L, COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE);
-        verify(appLogger).info("CAPTIS indexing is not completed for CCA.. initiating CAPTIS submission for kycId: {}", 456L);
-        verify(service).generateSubmitCcaPdf(kycId, uuid, ipAddress);
+        verify(kycInformationUtilityService, times(1)).isRegularCardRequest(kycId, kycInformation);
+        verify(serviceClass, times(1)).generateSubmitCcaPdf(kycId, uuid, ipAddress);
+    }
 
-        verify(docManagementService).isCAPTISDocIdIndexed(456L, COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC);
-        verify(appLogger).info("CAPTIS indexing is not completed for CSA.. initiating CAPTIS submission for kycId: {}", 456L);
-        verify(service).initiateCAPTISIndexing(456L, kycInformation, uuid);
+    @Test
+    void testAcceleratorCardSubmitFlow_submitToCardPro() throws Exception {
+        Long kycId = 1L;
+        String uuid = "uuid";
+        String ipAddress = "127.0.0.1";
+        boolean isReprocess = true;
+
+        KYCInformationDTO kycInformation = mock(KYCInformationDTO.class);
+        CmlCardBaseDTO cmlCardBaseDTO = mock(CmlCardBaseDTO.class);
+
+        when(kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation)).thenReturn(true);
+        when(docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE)).thenReturn(true);
+
+        serviceClass.acceleratorCardSubmitFlow(kycId, uuid, ipAddress, isReprocess, kycInformation, cmlCardBaseDTO, gson);
+
+        verify(kycInformationUtilityService, times(1)).isRegularCardRequest(kycId, kycInformation);
+        verify(docManagementService, times(1)).isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE);
+        verify(serviceClass, times(1)).submitToCardPro(kycId, cmlCardBaseDTO, gson);
+        verify(serviceClass, times(1)).submitContract(kycId);
+    }
+
+    @Test
+    void testAcceleratorCardSubmitFlow_dualSigner() throws Exception {
+        Long kycId = 1L;
+        String uuid = "uuid";
+        String ipAddress = "127.0.0.1";
+        boolean isReprocess = true;
+
+        KYCInformationDTO kycInformation = mock(KYCInformationDTO.class);
+        CmlCardBaseDTO cmlCardBaseDTO = mock(CmlCardBaseDTO.class);
+
+        when(kycInformationUtilityService.isAuthorizedSignerRequestComplete(kycId, kycInformation)).thenReturn(true);
+        when(docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC)).thenReturn(true);
+        when(docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE)).thenReturn(true);
+
+        serviceClass.acceleratorCardSubmitFlow(kycId, uuid, ipAddress, isReprocess, kycInformation, cmlCardBaseDTO, gson);
+
+        verify(kycInformationUtilityService, times(1)).isAuthorizedSignerRequestComplete(kycId, kycInformation);
+        verify(docManagementService, times(1)).isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC);
+        verify(docManagementService, times(1)).isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE);
+        verify(serviceClass, times(1)).submitToCardPro(kycId, cmlCardBaseDTO, gson);
+        verify(serviceClass, times(1)).submitContract(kycId);
     }
 }
