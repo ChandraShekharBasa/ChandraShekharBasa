@@ -1,39 +1,97 @@
-    @Test
-    void testConfirmSection_WhenRequestTypeIsProductsAndNoProductsExists() {
-        Long kycId = 123L;
+    /**
+     * Operations will happen async after the success response is render to the view.
+     */
+    @Async("threadPoolTaskExecutor")
+    @Override
+    public void initiateAsyncClientOnboardingOps(Long kycId, String uuid, String ipAddress, boolean isReprocess) {
+        appLogger.info("Orchestration Async process initiated with kycId: {}", kycId);
+        Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().serializeNulls().create();
 
-        KYCInformationEntity kycInformationEntity = new KYCInformationEntity();
-        kycInformationEntity.setIsBusOpsConfirmed(true);
-        kycInformationEntity.setRequestType(COLTConstants.PRODUCTS_TYPE);
+        try {
+            KYCInformationDTO kycInformation = kycInformationUtilityService.getKycInformation(kycId);
+            appLogger.info("KycInformation within new async thread with kycId: {} and kycInformation: {}", kycId, gson.toJson(kycInformation));
 
-        KYCInformationDTO kycInformationDTO = new KYCInformationDTO();
-        kycInformationDTO.setRequestType(COLTConstants.PRODUCTS_TYPE);
+            /*
+             * Send e-consent PDF email to deal team in case of single signer request or after both
+             * dual signer is complete
+             */
+            boolean isSendEmail = false;
+            if (kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation)
+                || kycInformationUtilityService.isAuthorizedSignerRequestComplete(kycId, kycInformation)) {
+                appLogger.info("Send e-consent PDF email to deal team for kycId : {}", kycId);
+                isSendEmail = true;
+            }
 
-        Mockito.when(kycInformationRepository.findById(kycId)).thenReturn(Optional.of(kycInformationEntity));
-        Mockito.when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(Collections.emptyList());
-        Mockito.when(kycInformationRepository.saveAndFlush(any(KYCInformationEntity.class))).thenReturn(kycInformationEntity);
+            CmlCardBaseDTO cmlCardBaseDTO = generatePayloadForPDFOrCardProSubmission(kycId, kycInformation, uuid, ipAddress, isSendEmail);
+            List<Product> products = cmlCardProductService.getProductsForKYC(kycId);
+            if (!CollectionUtils.isEmpty(products)) {
+                String cardType = Objects.nonNull(products.get(0)) ? products.get(0).getType() : null;
+                appLogger.info("initiateAsyncClientOnboardingOps cardType :{} for submission for kycId: {}", cardType, kycId);
+                if (StringUtils.isNotBlank(cardType)) {
+                    switch (cardType) {
+                        case COLTConstants.ONE_CARD_REWARD:
+                            rewardsCardSubmitFlow(kycId, uuid, ipAddress, isReprocess, kycInformation, cmlCardBaseDTO, gson);
+                            break;
+                        case COLTConstants.ACCELERATOR_CARD:
+                            acceleratorCardSubmitFlow(kycId, uuid, ipAddress, isReprocess, kycInformation, cmlCardBaseDTO, gson);
+                            break;
+                    }
+                }
+            }
 
-        KYCInformationDTO result = kycInformationUtilityService.confirmSection(kycId, "businessOperations", true, userId, "ip", false);
-
-        Assertions.assertEquals(kycInformationDTO, result);
+        } catch (Exception e) {
+            appLogger.error("Submit CardOne: An exception occurred when getting file ID with kycId: " + kycId.toString(), e);
+            throw new RuntimeException(e);
+        }
+    } 
+ 
+ 
+ 
+ 
+ private void acceleratorCardSubmitFlow(Long kycId, String uuid, String ipAddress, boolean isReprocess, KYCInformationDTO kycInformation, CmlCardBaseDTO cmlCardBaseDTO, Gson gson) throws Exception {
+        if (kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation) && !isReprocess) {
+            //Single Signer first time submission generate CCA
+            generateSubmitCcaPdf(kycId, uuid, ipAddress);
+        } else if (kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation) &&
+                isReprocess &&
+                docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE)) {
+            //Single Signer push-toCardPRO reprocess submit to cardPRO
+            submitToCardPro(kycId, cmlCardBaseDTO, gson);
+            //TODO add check for status of contract submission before resubmitting to contract API. The story is planned for Sprint 234
+            submitContract(kycId);
+        } else if (kycInformationUtilityService.isAuthorizedSignerRequestComplete(kycId, kycInformation) &&
+                docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC) &&
+                docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE) &&
+                        isReprocess) {
+            //Dual signer Card request push-toCardPRO reprocess submit to cardPRO
+            appLogger.info("Calling submitToCardPro with kycId: {}", kycId);
+            submitToCardPro(kycId, cmlCardBaseDTO, gson);
+            //TODO add check for status of contract submission before resubmitting to contract API. The story is planned for Sprint 234
+            submitContract(kycId);
+        } else if (kycInformationUtilityService.isAuthorizedSignerRequestComplete(kycId, kycInformation)) {
+            //Dual signer card request submitted first and CCA is not generated and indexed
+            if(!docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE)) {
+                appLogger.info("CAPTIS indexing is not completed for CCA.. initiating CAPTIS submission for kycId: {}", kycInformation.getParentKycId());
+                generateSubmitCcaPdf(kycId, uuid, ipAddress);
+            }
+            if(!docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC)) {
+                appLogger.info("CAPTIS indexing is not completed for CSA.. initiating CAPTIS submission for kycId: {}", kycInformation.getParentKycId());
+                initiateCAPTISIndexing(kycInformation.getParentKycId(), kycInformation, uuid);
+            }
+        } else {
+            appLogger.info("submitToCardPro Service not initiated for kycId: {}", kycId);
+        }
     }
+	
+	
+	
 
-    @Test
-    void testConfirmSection_WhenRequestTypeIsProductsAndProductsExist() {
-        Long kycId = 123L;
 
-        KYCInformationEntity kycInformationEntity = new KYCInformationEntity();
-        kycInformationEntity.setIsBusOpsConfirmed(true);
-        kycInformationEntity.setRequestType(COLTConstants.PRODUCTS_TYPE);
-
-        KYCInformationDTO kycInformationDTO = new KYCInformationDTO();
-        List<Product> productList = List.of(new Product());
-
-        Mockito.when(kycInformationRepository.findById(kycId)).thenReturn(Optional.of(kycInformationEntity));
-        Mockito.when(cmlCardProductService.getProductsForKYC(kycId)).thenReturn(productList);
-        Mockito.when(kycInformationRepository.saveAndFlush(any(KYCInformationEntity.class))).thenReturn(kycInformationEntity);
-
-        KYCInformationDTO result = kycInformationUtilityService.confirmSection(kycId, "businessOperations", true, userId, "ip", false);
-
-        Assertions.assertEquals(kycInformationDTO, result);
-    }
+ if(!docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE)) {
+                appLogger.info("CAPTIS indexing is not completed for CCA.. initiating CAPTIS submission for kycId: {}", kycInformation.getParentKycId());
+                generateSubmitCcaPdf(kycId, uuid, ipAddress);
+            }
+            if(!docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC)) {
+                appLogger.info("CAPTIS indexing is not completed for CSA.. initiating CAPTIS submission for kycId: {}", kycInformation.getParentKycId());
+                initiateCAPTISIndexing(kycInformation.getParentKycId(), kycInformation, uuid);
+            }
