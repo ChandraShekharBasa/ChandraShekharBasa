@@ -1,26 +1,15 @@
 Hi Mohit/Atul,
 
-We observed the issue regarding First Name while working on CBOPTIMIZER-11228.
+While working on CBOPTIMIZER-11228, we identified an issue with the "First Name" field.
 
-In the resolve call response, we observed that first name is populated wrongly i.e. it does not contain the full first name instead only the first part of the name if the first name contains the SPACE.
-Observed the same issue with clientDetail call as well.
-For example: 
+In the response from the resolve call, the first name is not being populated correctly. Instead of including the full first name, it only contains the first part if the name has a space. We observed the same behavior in the clientDetail call as well.
+
+For example:
 
 Full name: Veda Shruthi Poolla
-First name is populated as “Veda” only instead “Veda Shruthi”
-Last name is populated correctly
-
-Please find the following screenshots & attached Json response for your reference.
-Request you to look into this issue and let me know if you need any further details.
-
- 
-
-
- 
-
-
-Thanks,
-Chandra
+First name is being populated as “Veda” instead of “Veda Shruthi”
+The last name is populated correctly.
+Attached are the relevant screenshots and the JSON response for your reference. Kindly investigate this issue and let me know if you need any further information.
 
 
 
