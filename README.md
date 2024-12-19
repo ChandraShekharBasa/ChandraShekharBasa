@@ -1,20 +1,36 @@
-Hi Mohit/Atul,
+static private void mapProducts(List<Product> products, JobSchedulerEmailNotificationReportDTO report) {
+        if (!CollectionUtils.isEmpty(products)) {
+            products.forEach(pro -> {
 
-While working on CBOPTIMIZER-11228, we identified an issue with the "First Name" field.
+                if (!Objects.nonNull(pro)) {
+                    return;
+                }
 
-In the response from the resolve call, the first name is not being populated correctly. Instead of including the full first name, it only contains the first part if the name has a space. We observed the same behavior in the clientDetail call as well.
+                String productType = pro.getType();
 
-For example:
+                if (CERTIFIER.equalsIgnoreCase(productType)) {
+                    productType = SIGNER_CERTIFICATION;
+                } else if (ONE_CARD_REWARD.equalsIgnoreCase(pro.getType())) {
+                    if (Objects.nonNull(pro.getProductDetails())) {
+                        Map<String, Object> map = pro.getProductDetails();
+                        if (Objects.nonNull(map.get("settlementTerms"))) {
+                            String settlementTerm = map.get("settlementTerms").toString();
+                            if (StringUtils.isNotEmpty(settlementTerm)) {
+                                report.setSettlementTerms(settlementTerm);
+                                if (StringUtils.isNotEmpty(settlementTerm)) {
+                                    report.setRequestType("30/1".equalsIgnoreCase(settlementTerm) ? DYNAMIC_CARD : ONE_CARD_WITH_REWARDS);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } else if (COLTConstants.ACCELERATOR_CARD.equalsIgnoreCase(productType)) {
+                    productType = COLTConstants.ACCELERATOR_CARD;
+                } else if (COLTConstants.ONE_CARD_REBATES.equalsIgnoreCase(productType)) {
+                    productType = COLTConstants.ONE_CARD_REBATES;
+                }
 
-Full name: Veda Shruthi Poolla
-First name is being populated as “Veda” instead of “Veda Shruthi”
-The last name is populated correctly.
-Attached are the relevant screenshots and the JSON response for your reference. Kindly investigate this issue and let me know if you need any further information.
-
-
-
-
-
-
-
-
+                report.setRequestType(productType);
+            });
+        }
+    }
