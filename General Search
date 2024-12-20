@@ -1,95 +1,105 @@
-{
-    "version": "v1",
-    "status": {
-        "statusCode": 1,
-        "statusMessage": "Search is Successful"
-    },
-    "error": "",
-    "result": {
-        "paginate": {
-            "page": 1,
-            "totalRecords": 1,
-            "remainingRecords": 0
-        },
-        "list": [
-            {
-                "FullName": "Chandra sekhar Maddineni",
-                "ManagerName": "Sandeep Tak",
-                "FirstName": "Chandra sekhar",
-                "MiddleName": null,
-                "LastName": "Maddineni",
-                "DisplayedFirstName": "Chandra sekhar",
-                "PreferredLastName": "Maddineni",
-                "ManagerSID": "E582029",
-                "ManagerFirstName": "Sandeep",
-                "ManagerLastName": "Tak",
-                "ManagerPreferredName": "Sandeep",
-                "ManagerPreferredLastName": "Tak",
-                "UserSID": "D334695",
-                "Email": "chandrasekhar.maddineni@chase.com",
-                "PhoneNo": 1.6142130897E10,
-                "SEEME": null,
-                "MobileTP": null,
-                "PersonalTP": null,
-                "Location": "54101",
-                "CostCenter": "373001",
-                "CostCenterName": "DT_CCB DATA LAKE",
-                "Levels": [
-                    "DT_CCB DATA LAKE",
-                    "DT_CCB DATA LAKE",
-                    "DATA TECHNOLOGY",
-                    "CCB TECHNOLOGY",
-                    "CONSUMER & COMMUNITY BANKING ADMINISTRATION",
-                    "BANKING & WEALTH MANAGEMENT",
-                    "CONSUMER & COMMUNITY BANKING",
-                    "TOTAL GROUPS-EX STAFF & UNDI",
-                    "JP MORGAN CHASE EX CONSOL ENT.",
-                    "JP MORGAN CHASE & CO.",
-                    "TOP"
-                ],
-                "BuildingName": "1111 Polaris",
-                "City": "Columbus",
-                "State": "Ohio",
-                "Region": "NAMR",
-                "Country": "US",
-                "CountryAbbr": "USA",
-                "TimeZone": "EST",
-                "ImageURL": "https://phone.jpmchase.net:4433/services/photoGet.aspx?appid=20747%20Intranet%20Phonebook&source=&size=base&maxsize=150&StandardID=D334695",
-                "Title": "Other Exempt",
-                "PreferredTitle": "AS",
-                "BankTitleCode": "ASSOC",
-                "BankSubTitleCode": null,
-                "BankTitleDescription": "Associate",
-                "IsContractor": 0,
-                "Cellphone": 1.8126551942E10,
-                "ZOOM": "2654951682",
-                "VanityName": "",
-                "PositionCode": "1003861",
-                "PositionName": "1003861: Software Engineer III (SWES03) DT_CCB DATA LAKE (373001:US:0802)",
-                "OfficerCode": "N",
-                "AlternateWorkContacts": null,
-                "ExecutiveAssistants": null,
-                "AdministrativeAssistants": null,
-                "DisplayedLastName": null,
-                "IsRecorded": false,
-                "Floor": "3M",
-                "TaxonomyId": "TCHNOL",
-                "Address": "1111 Polaris Pkwy",
-                "BankTitleCodeDescription": null,
-                "LegalEntityId": "0802",
-                "LegalEntityDescription": "JPMORGAN CHASE BANK, N.A.",
-                "JobCodeId": "SWES03",
-                "JobCodeDescription": "Software Engineer III",
-                "JobFamilyCode": "SFTENG",
-                "JobFamilyDescription": "Software Engineering",
-                "LobCode": "S577006",
-                "LobDescription": "CONSUMER & COMMUNITY BANKING",
-                "SubLobCode": "S576344",
-                "SubLobDescription": "BANKING & WEALTH MANAGEMENT"
-            }
-        ]
-    },
-    "traceId": "INTERNALGEN-9b98adf2-3a14-4eb6-b5d1-671665bf24e1",
-    "timestamp": "2024-12-20T02:16:43.399000038Z",
-    "path": "/v1/search"
+public class StaticJsonResponse {
+
+    public static String getStaticJsonResponse() {
+        return "{\n" +
+                "    \"version\": \"v1\",\n" +
+                "    \"status\": {\n" +
+                "        \"statusCode\": 1,\n" +
+                "        \"statusMessage\": \"Search is Successful\"\n" +
+                "    },\n" +
+                "    \"error\": \"\",\n" +
+                "    \"result\": {\n" +
+                "        \"paginate\": {\n" +
+                "            \"page\": 1,\n" +
+                "            \"totalRecords\": 1,\n" +
+                "            \"remainingRecords\": 0\n" +
+                "        },\n" +
+                "        \"list\": [\n" +
+                "            {\n" +
+                "                \"FullName\": \"Chandra sekhar Maddineni\",\n" +
+                "                \"ManagerName\": \"Sandeep Tak\",\n" +
+                "                \"FirstName\": \"Chandra sekhar\",\n" +
+                "                \"MiddleName\": null,\n" +
+                "                \"LastName\": \"Maddineni\",\n" +
+                "                \"DisplayedFirstName\": \"Chandra sekhar\",\n" +
+                "                \"PreferredLastName\": \"Maddineni\",\n" +
+                "                \"ManagerSID\": \"E582029\",\n" +
+                "                \"ManagerFirstName\": \"Sandeep\",\n" +
+                "                \"ManagerLastName\": \"Tak\",\n" +
+                "                \"ManagerPreferredName\": \"Sandeep\",\n" +
+                "                \"ManagerPreferredLastName\": \"Tak\",\n" +
+                "                \"UserSID\": \"D334695\",\n" +
+                "                \"Email\": \"chandrasekhar.maddineni@chase.com\",\n" +
+                "                \"PhoneNo\": 1.6142130897E10,\n" +
+                "                \"SEEME\": null,\n" +
+                "                \"MobileTP\": null,\n" +
+                "                \"PersonalTP\": null,\n" +
+                "                \"Location\": \"54101\",\n" +
+                "                \"CostCenter\": \"373001\",\n" +
+                "                \"CostCenterName\": \"DT_CCB DATA LAKE\",\n" +
+                "                \"Levels\": [\n" +
+                "                    \"DT_CCB DATA LAKE\",\n" +
+                "                    \"DT_CCB DATA LAKE\",\n" +
+                "                    \"DATA TECHNOLOGY\",\n" +
+                "                    \"CCB TECHNOLOGY\",\n" +
+                "                    \"CONSUMER & COMMUNITY BANKING ADMINISTRATION\",\n" +
+                "                    \"BANKING & WEALTH MANAGEMENT\",\n" +
+                "                    \"CONSUMER & COMMUNITY BANKING\",\n" +
+                "                    \"TOTAL GROUPS-EX STAFF & UNDI\",\n" +
+                "                    \"JP MORGAN CHASE EX CONSOL ENT.\",\n" +
+                "                    \"JP MORGAN CHASE & CO.\",\n" +
+                "                    \"TOP\"\n" +
+                "                ],\n" +
+                "                \"BuildingName\": \"1111 Polaris\",\n" +
+                "                \"City\": \"Columbus\",\n" +
+                "                \"State\": \"Ohio\",\n" +
+                "                \"Region\": \"NAMR\",\n" +
+                "                \"Country\": \"US\",\n" +
+                "                \"CountryAbbr\": \"USA\",\n" +
+                "                \"TimeZone\": \"EST\",\n" +
+                "                \"ImageURL\": \"https://phone.jpmchase.net:4433/services/photoGet.aspx?appid=20747%20Intranet%20Phonebook&source=&size=base&maxsize=150&StandardID=D334695\",\n" +
+                "                \"Title\": \"Other Exempt\",\n" +
+                "                \"PreferredTitle\": \"AS\",\n" +
+                "                \"BankTitleCode\": \"ASSOC\",\n" +
+                "                \"BankSubTitleCode\": null,\n" +
+                "                \"BankTitleDescription\": \"Associate\",\n" +
+                "                \"IsContractor\": 0,\n" +
+                "                \"Cellphone\": 1.8126551942E10,\n" +
+                "                \"ZOOM\": \"2654951682\",\n" +
+                "                \"VanityName\": \"\",\n" +
+                "                \"PositionCode\": \"1003861\",\n" +
+                "                \"PositionName\": \"1003861: Software Engineer III (SWES03) DT_CCB DATA LAKE (373001:US:0802)\",\n" +
+                "                \"OfficerCode\": \"N\",\n" +
+                "                \"AlternateWorkContacts\": null,\n" +
+                "                \"ExecutiveAssistants\": null,\n" +
+                "                \"AdministrativeAssistants\": null,\n" +
+                "                \"DisplayedLastName\": null,\n" +
+                "                \"IsRecorded\": false,\n" +
+                "                \"Floor\": \"3M\",\n" +
+                "                \"TaxonomyId\": \"TCHNOL\",\n" +
+                "                \"Address\": \"1111 Polaris Pkwy\",\n" +
+                "                \"BankTitleCodeDescription\": null,\n" +
+                "                \"LegalEntityId\": \"0802\",\n" +
+                "                \"LegalEntityDescription\": \"JPMORGAN CHASE BANK, N.A.\",\n" +
+                "                \"JobCodeId\": \"SWES03\",\n" +
+                "                \"JobCodeDescription\": \"Software Engineer III\",\n" +
+                "                \"JobFamilyCode\": \"SFTENG\",\n" +
+                "                \"JobFamilyDescription\": \"Software Engineering\",\n" +
+                "                \"LobCode\": \"S577006\",\n" +
+                "                \"LobDescription\": \"CONSUMER & COMMUNITY BANKING\",\n" +
+                "                \"SubLobCode\": \"S576344\",\n" +
+                "                \"SubLobDescription\": \"BANKING & WEALTH MANAGEMENT\"\n" +
+                "            }\n" +
+                "        ]\n" +
+                "    },\n" +
+                "    \"traceId\": \"INTERNALGEN-9b98adf2-3a14-4eb6-b5d1-671665bf24e1\",\n" +
+                "    \"timestamp\": \"2024-12-20T02:16:43.399000038Z\",\n" +
+                "    \"path\": \"/v1/search\"\n" +
+                "}";
+    }
+
+    public static void main(String[] args) {
+        String jsonResponse = getStaticJsonResponse();
+        System.out.println(jsonResponse);
+    }
 }
