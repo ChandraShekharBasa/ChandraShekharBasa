@@ -1,11 +1,95 @@
-Integrate PERF Script with Jules for PERF Env
-
-
-Hi Harsh,
-
-I wanted to share my perspective on this. As far as I understand, we can consider this a low-risk issue regarding remediation since the reported issue originates from the build process (a transitive dependency in package.json) and doesn’t make it into the final application package/distribution.
-
-In such cases, we typically close the issue with relevant comments, as this does not pose a vulnerability to our application.
-
-Thanks,
-Chandra
+{
+    "version": "v1",
+    "status": {
+        "statusCode": 1,
+        "statusMessage": "Search is Successful"
+    },
+    "error": "",
+    "result": {
+        "paginate": {
+            "page": 1,
+            "totalRecords": 1,
+            "remainingRecords": 0
+        },
+        "list": [
+            {
+                "FullName": "Chandra sekhar Maddineni",
+                "ManagerName": "Sandeep Tak",
+                "FirstName": "Chandra sekhar",
+                "MiddleName": null,
+                "LastName": "Maddineni",
+                "DisplayedFirstName": "Chandra sekhar",
+                "PreferredLastName": "Maddineni",
+                "ManagerSID": "E582029",
+                "ManagerFirstName": "Sandeep",
+                "ManagerLastName": "Tak",
+                "ManagerPreferredName": "Sandeep",
+                "ManagerPreferredLastName": "Tak",
+                "UserSID": "D334695",
+                "Email": "chandrasekhar.maddineni@chase.com",
+                "PhoneNo": 1.6142130897E10,
+                "SEEME": null,
+                "MobileTP": null,
+                "PersonalTP": null,
+                "Location": "54101",
+                "CostCenter": "373001",
+                "CostCenterName": "DT_CCB DATA LAKE",
+                "Levels": [
+                    "DT_CCB DATA LAKE",
+                    "DT_CCB DATA LAKE",
+                    "DATA TECHNOLOGY",
+                    "CCB TECHNOLOGY",
+                    "CONSUMER & COMMUNITY BANKING ADMINISTRATION",
+                    "BANKING & WEALTH MANAGEMENT",
+                    "CONSUMER & COMMUNITY BANKING",
+                    "TOTAL GROUPS-EX STAFF & UNDI",
+                    "JP MORGAN CHASE EX CONSOL ENT.",
+                    "JP MORGAN CHASE & CO.",
+                    "TOP"
+                ],
+                "BuildingName": "1111 Polaris",
+                "City": "Columbus",
+                "State": "Ohio",
+                "Region": "NAMR",
+                "Country": "US",
+                "CountryAbbr": "USA",
+                "TimeZone": "EST",
+                "ImageURL": "https://phone.jpmchase.net:4433/services/photoGet.aspx?appid=20747%20Intranet%20Phonebook&source=&size=base&maxsize=150&StandardID=D334695",
+                "Title": "Other Exempt",
+                "PreferredTitle": "AS",
+                "BankTitleCode": "ASSOC",
+                "BankSubTitleCode": null,
+                "BankTitleDescription": "Associate",
+                "IsContractor": 0,
+                "Cellphone": 1.8126551942E10,
+                "ZOOM": "2654951682",
+                "VanityName": "",
+                "PositionCode": "1003861",
+                "PositionName": "1003861: Software Engineer III (SWES03) DT_CCB DATA LAKE (373001:US:0802)",
+                "OfficerCode": "N",
+                "AlternateWorkContacts": null,
+                "ExecutiveAssistants": null,
+                "AdministrativeAssistants": null,
+                "DisplayedLastName": null,
+                "IsRecorded": false,
+                "Floor": "3M",
+                "TaxonomyId": "TCHNOL",
+                "Address": "1111 Polaris Pkwy",
+                "BankTitleCodeDescription": null,
+                "LegalEntityId": "0802",
+                "LegalEntityDescription": "JPMORGAN CHASE BANK, N.A.",
+                "JobCodeId": "SWES03",
+                "JobCodeDescription": "Software Engineer III",
+                "JobFamilyCode": "SFTENG",
+                "JobFamilyDescription": "Software Engineering",
+                "LobCode": "S577006",
+                "LobDescription": "CONSUMER & COMMUNITY BANKING",
+                "SubLobCode": "S576344",
+                "SubLobDescription": "BANKING & WEALTH MANAGEMENT"
+            }
+        ]
+    },
+    "traceId": "INTERNALGEN-9b98adf2-3a14-4eb6-b5d1-671665bf24e1",
+    "timestamp": "2024-12-20T02:16:43.399000038Z",
+    "path": "/v1/search"
+}
