@@ -1,3 +1,5 @@
+Identify the vulnerability
+
 const notification = document.querySelector('.notification');
 const notificationText = document.querySelector('.notification__text');
 
