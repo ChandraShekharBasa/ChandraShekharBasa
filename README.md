@@ -1,19 +1,28 @@
-Insufficient Transport Layer Protection - Unprotected Transport of Sensitive Information
+const notification = document.querySelector('.notification');
+const notificationText = document.querySelector('.notification__text');
 
+const notificationAction = (opacity, transform) => {
+  notification.style.opacity = opacity;
+  notification.style.transform = `translateX(${transform}px)`;
+};
 
-<?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
-         version="4.0">
+const checkTextType = type => {
+  switch (type) {
+    case 'success':
+      return '#00ff00';
+    case 'error':
+      return '#ff0000';
+    default:
+      return '#000';
+  }
+};
 
-    <security-constraint>
-        <web-resource-collection>
-            <web-resource-name>Entire Application</web-resource-name>
-            <url-pattern>/auth</url-pattern>
-        </web-resource-collection>
-        <user-data-constraint>
-            <transport-guarantee>CONFIDENTIAL</transport-guarantee>
-        </user-data-constraint>
-    </security-constraint>
-</web-app>
+export const openNotification = (text, textType) => {
+  notificationText.innerHTML = text;
+  notificationText.style.color = checkTextType(textType);
+
+  notificationAction(1, -350);
+  setTimeout(() => {
+    notificationAction(0, 0);
+  }, 3000);
+};
