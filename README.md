@@ -1,99 +1,90 @@
-package com.csw.cybersport.auth.service.impl;
+package com.scw.directoryService.service.xmlService;
 
-import com.csw.cybersport.auth.exception.CryptoException;
+import com.scw.directoryService.model.sqlEntity.Report;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.StringUtils;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import javax.crypto.*;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.jms.JMSException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.util.Arrays;
+public class XmlReportService {
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+    private static final Logger logger = Logger.getLogger(XmlReportService.class.getName());
 
-@RequestScoped
-public class CryptoService {
-
-    private static final String AES = "AES";
-
-    private final static int IV_LENGTH = 16;
-
-    private static final String TRANSFORMATION = "AES/CBC/PKCS5Padding";
-
-    @Inject
-    private LogService logService;
-
-    @Inject
-    private SecretKey secretKey;
-
-    public String encrypt(String value) throws CryptoException, JMSException {
-        if (StringUtils.isBlank(value)) {
-            return "";
-        }
-        byte[] encoded = value.getBytes(UTF_8);
-        return Base64.encodeBase64String(encrypt(encoded));
-    }
-
-    public String decrypt(String value) throws CryptoException, JMSException {
-        if (StringUtils.isBlank(value)) {
-            return "";
-        }
-        byte[] cipherText = Base64.decodeBase64(value);
-        return new String(decrypt(cipherText));
-    }
-
-    private byte[] encrypt(byte[] value) throws CryptoException, JMSException {
+    public Optional<Report> getReportFromXml(File file) {
         try {
-            byte[] initVector = new byte[IV_LENGTH];
-            (new SecureRandom()).nextBytes(initVector);
-            SecretKeySpec keySpec = new SecretKeySpec(secretKey.getEncoded(),
-                    AES);
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            cipher.init(Cipher.ENCRYPT_MODE, keySpec, new IvParameterSpec(initVector));
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "all");
 
-            byte[] cipherText = new byte[initVector.length
-                    + cipher.getOutputSize(value.length)];
-            System.arraycopy(initVector, 0, cipherText, 0,
-                    initVector.length);
-            cipher.doFinal(value, 0, value.length, cipherText,
-                    initVector.length);
-            return cipherText;
-        } catch (ShortBufferException | IllegalBlockSizeException
-                | BadPaddingException | InvalidKeyException
-                | InvalidAlgorithmParameterException
-                | NoSuchAlgorithmException | NoSuchPaddingException
-                | IllegalArgumentException | IllegalStateException e) {
-            logService.error("Encryption error: " + e.getMessage());
-            throw new CryptoException();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.parse(file);
+
+            document.getDocumentElement().normalize();
+            Element element = document.getDocumentElement();
+
+            return Optional.of(new Report(
+                element.getElementsByTagName("author").item(0).getTextContent(),
+                element.getElementsByTagName("title").item(0).getTextContent(),
+                element.getElementsByTagName("theses").item(0).getTextContent(),
+                element.getElementsByTagName("text").item(0).getTextContent()
+            ));
+
+        } catch (SAXException | IOException | ParserConfigurationException exception) {
+            logger.log(Level.SEVERE, "error while creating report at xml format \n", exception);
         }
+        return Optional.empty();
     }
 
-    private byte[] decrypt(byte[] value) throws CryptoException, JMSException {
+
+    public boolean createXMLReportFromObject(Report report, String path,
+                                             String fileName) {
         try {
-            byte[] initVector = Arrays.copyOfRange(value, 0,
-                    IV_LENGTH);
-            SecretKeySpec keySpec = new SecretKeySpec(
-                    secretKey.getEncoded(), AES);
+            Document document = DocumentBuilderFactory
+                .newInstance()
+                .newDocumentBuilder()
+                .newDocument();
+            Element reportTag = document.createElement("report");
+            document.appendChild(reportTag);
 
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            cipher.init(Cipher.DECRYPT_MODE, keySpec, new IvParameterSpec(initVector));
+            Element author = document.createElement("author");
+            author.setTextContent(report.getAuthor());
+            reportTag.appendChild(author);
 
-            return cipher.doFinal(value, IV_LENGTH, value.length - IV_LENGTH);
-        } catch (IllegalBlockSizeException | BadPaddingException
-                | InvalidKeyException | InvalidAlgorithmParameterException
-                | NoSuchAlgorithmException
-                | NoSuchPaddingException
-                | IllegalArgumentException | IllegalStateException e) {
-            logService.error("Decryption failed : " + e.getMessage());
-            throw new CryptoException();
+            Element title = document.createElement("title");
+            title.setTextContent(report.getTitle());
+            reportTag.appendChild(title);
+
+            Element theses = document.createElement("theses");
+            theses.setTextContent(report.getTheses());
+            reportTag.appendChild(theses);
+
+            Element text = document.createElement("text");
+            text.setTextContent(report.getText());
+            reportTag.appendChild(text);
+
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            DOMSource source = new DOMSource(document);
+            StreamResult result = new StreamResult(new File(path + "\\" + fileName));
+            transformer.transform(source, result);
+
+            return true;
+
+        } catch (ParserConfigurationException | TransformerException exception){
+            logger.log(Level.SEVERE, "incorrectly create xml-report from .bin file \n", exception);
+            return false;
         }
     }
 
