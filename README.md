@@ -1,3 +1,5 @@
+Insecure Cryptography - Weak Algorithm Use
+
 package medicalclinic.services.impl;
 
 import medicalclinic.exceptions.EncryptionException;
