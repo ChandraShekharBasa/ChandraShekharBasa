@@ -1,95 +1,286 @@
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.*;
+package com.scw.directoryService.service;
 
-class AcceleratorCardSubmitFlowTest {
+import com.scw.directoryService.dao.impl.FileMetaDataDaoImpl;
+import com.scw.directoryService.dao.impl.ReportDaoImpl;
+import com.scw.directoryService.dao.sqlDao.FileMetaDataDao;
+import com.scw.directoryService.dao.sqlDao.ReportDao;
+import com.scw.directoryService.model.ldapEntity.User;
+import com.scw.directoryService.model.sqlEntity.FileMetaData;
+import com.scw.directoryService.model.sqlEntity.Report;
+import com.scw.directoryService.service.serialization.ReportSerializationFilter;
+import com.scw.directoryService.service.xmlService.XmlReportService;
 
-    @Mock
-    private KYCInformationUtilityService kycInformationUtilityService;
+import java.io.*;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.Connection;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
-    @Mock
-    private DocManagementService docManagementService;
+public class FileService {
 
-    @Mock
-    private Logger appLogger;
+    private static final Logger logger = Logger.getLogger(FileService.class.getName());
 
-    @InjectMocks
-    private YourServiceClass serviceClass; // Replace with the actual service class name
+    private final String pathToStorage = System.getenv("PATH_TO_STORAGE");
+    private final static String nameForShortReports = System.getenv("REPORTS_NAME");
 
-    private Gson gson;
+    private final static int maxFileLength = 1024 * 1024 *10;
+    private final static int maxFileNameLength = 255;
+    private final static String[] acceptableFileFormat = {".jpeg", ".xml", ".bin"};
+    private static final String simpleFileNamePattern = "^[a-zA-Z0-9,.!?_\\-]+$";
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        gson = new GsonBuilder().serializeSpecialFloatingPointValues().serializeNulls().create();
+    private final static String errorForFileService = "incorrect operation at file " +
+        "(business) service level";
+
+    private XmlReportService xmlReportService;
+    private FileMetaDataDao metaDataDao;
+    private ReportDao reportDao;
+
+    private Connection connection;
+
+    public FileService(Connection connection, XmlReportService xmlReportService) {
+        this.metaDataDao = new FileMetaDataDaoImpl();
+        this.reportDao = new ReportDaoImpl();
+        this.connection = connection;
+        this.xmlReportService = xmlReportService;
     }
 
-    @Test
-    void testAcceleratorCardSubmitFlow_generateCcaPdf() throws Exception {
-        Long kycId = 1L;
-        String uuid = "uuid";
-        String ipAddress = "127.0.0.1";
-        boolean isReprocess = false;
+    public boolean uploadFile(File file, User user) {
+        if (checkFileIsCorrect(file, user)) {
+            Optional<FileMetaData> checkMetadataForReport = metaDataDao.findDataByFileName(connection, file.getName());
 
-        KYCInformationDTO kycInformation = mock(KYCInformationDTO.class);
-        CmlCardBaseDTO cmlCardBaseDTO = mock(CmlCardBaseDTO.class);
+            if (file.getName().endsWith(".jpeg") && checkMetadataForReport.isEmpty()) {
 
-        when(kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation)).thenReturn(true);
+                String transformFileName = LocalDateTime.now().hashCode() + ".jpeg";
+                try (FileChannel inputStreamChannel = new FileInputStream(file).getChannel();
+                     FileChannel outputStream =
+                         new FileOutputStream(pathToStorage + File.separator + transformFileName).getChannel())
+                {
+                    inputStreamChannel.transferTo(0, inputStreamChannel.size(), outputStream);
+                    boolean successfulCreateMetaDataReportFlag =
+                        generateMetaDataForFile(transformFileName, user);
 
-        serviceClass.acceleratorCardSubmitFlow(kycId, uuid, ipAddress, isReprocess, kycInformation, cmlCardBaseDTO, gson);
+                    if (successfulCreateMetaDataReportFlag)
+                        return true;
+                }
+                catch (IOException exception) {
+                    logger.log(Level.SEVERE, errorForFileService, exception);
+                    return false;
+                }
+            }
 
-        verify(kycInformationUtilityService, times(1)).isRegularCardRequest(kycId, kycInformation);
-        verify(serviceClass, times(1)).generateSubmitCcaPdf(kycId, uuid, ipAddress);
+            if (file.getName().endsWith(".xml")){
+                boolean successfulFileUpload = uploadFileFromXml(file, user);
+
+                if (successfulFileUpload)
+                    return true;
+            }
+        }
+        logger.warning("user " + user.getLogin() + " can't upload file");
+        return false;
     }
 
-    @Test
-    void testAcceleratorCardSubmitFlow_submitToCardPro() throws Exception {
-        Long kycId = 1L;
-        String uuid = "uuid";
-        String ipAddress = "127.0.0.1";
-        boolean isReprocess = true;
+    public boolean uploadFileFromXml(File file, User user){
+        Optional<Report> reportValuesFromXml = xmlReportService.getReportFromXml(file);
 
-        KYCInformationDTO kycInformation = mock(KYCInformationDTO.class);
-        CmlCardBaseDTO cmlCardBaseDTO = mock(CmlCardBaseDTO.class);
+        if(reportValuesFromXml.isPresent()){
+            String transformFileName =
+                nameForShortReports + LocalDateTime.now().hashCode() + ".xml";
 
-        when(kycInformationUtilityService.isRegularCardRequest(kycId, kycInformation)).thenReturn(true);
-        when(docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE)).thenReturn(true);
+            try (FileChannel inputStreamChannel =
+                     new FileInputStream(file).getChannel();
+                 FileChannel outputStream =
+                     new FileOutputStream(pathToStorage + File.separator + transformFileName)
+                         .getChannel())
+            {
+                inputStreamChannel.transferTo(0, inputStreamChannel.size(), outputStream);
+                boolean successfulCreateMetaDataReport =
+                    generateMetaDataForFile(transformFileName, user);
+                boolean checkSuccessfulCreateReport =
+                    reportDao.createReport(connection, reportValuesFromXml.get(), transformFileName);
 
-        serviceClass.acceleratorCardSubmitFlow(kycId, uuid, ipAddress, isReprocess, kycInformation, cmlCardBaseDTO, gson);
+                if (checkSuccessfulCreateReport && successfulCreateMetaDataReport)
+                    return true;
 
-        verify(kycInformationUtilityService, times(1)).isRegularCardRequest(kycId, kycInformation);
-        verify(docManagementService, times(1)).isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE);
-        verify(serviceClass, times(1)).submitToCardPro(kycId, cmlCardBaseDTO, gson);
-        verify(serviceClass, times(1)).submitContract(kycId);
+            } catch (IOException exception) {
+                logger.log(Level.SEVERE, errorForFileService, exception);
+                return false;
+            }
+        }
+        logger.warning(errorForFileService);
+        return false;
     }
 
-    @Test
-    void testAcceleratorCardSubmitFlow_dualSigner() throws Exception {
-        Long kycId = 1L;
-        String uuid = "uuid";
-        String ipAddress = "127.0.0.1";
-        boolean isReprocess = true;
+    public boolean serializationUploadFile(File file, User user) {
+        if (checkFileIsCorrect(file, user)) {
 
-        KYCInformationDTO kycInformation = mock(KYCInformationDTO.class);
-        CmlCardBaseDTO cmlCardBaseDTO = mock(CmlCardBaseDTO.class);
+            Optional<Report> reportFromObject = readFileFromObject(file);
+            if (reportFromObject.isPresent()) {
+                String transformFileName = nameForShortReports +LocalDateTime.now().hashCode()+".xml";
+                Optional<Report> checkReportName = reportDao.findReportByFileName(connection, transformFileName);
 
-        when(kycInformationUtilityService.isAuthorizedSignerRequestComplete(kycId, kycInformation)).thenReturn(true);
-        when(docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC)).thenReturn(true);
-        when(docManagementService.isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE)).thenReturn(true);
-
-        serviceClass.acceleratorCardSubmitFlow(kycId, uuid, ipAddress, isReprocess, kycInformation, cmlCardBaseDTO, gson);
-
-        verify(kycInformationUtilityService, times(1)).isAuthorizedSignerRequestComplete(kycId, kycInformation);
-        verify(docManagementService, times(1)).isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.CORE_SIGNER_AUTHORIZATION_DOC);
-        verify(docManagementService, times(1)).isCAPTISDocIdIndexed(kycInformation.getParentKycId(), COLTConstants.ACCELERATOR_CARD_CCA_DOCUMENT_TYPE);
-        verify(serviceClass, times(1)).submitToCardPro(kycId, cmlCardBaseDTO, gson);
-        verify(serviceClass, times(1)).submitContract(kycId);
+                if (checkReportName.isEmpty()) {
+                    reportDao.createReport(connection, reportFromObject.get(), transformFileName);
+                    generateMetaDataForFile(transformFileName, user);
+                    xmlReportService.createXMLReportFromObject(reportFromObject.get(), pathToStorage, transformFileName);
+                    return true;
+                }
+            }
+            logger.warning("file serialization failed; " + user.getLogin());
+        }
+        return false;
     }
+
+    public Optional<Report> readFileFromObject(File file) {
+        ReportSerializationFilter filter = new ReportSerializationFilter();
+        try (ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(file))) {
+
+            objectInputStream.setObjectInputFilter(filter);
+            return Optional.of((Report) objectInputStream.readObject());
+
+        } catch (IOException | ClassNotFoundException exception) {
+            logger.log(Level.SEVERE, errorForFileService, exception);
+        }
+        return Optional.empty();
+    }
+
+    public boolean downLoadFile(File file, File directory) {
+        try(FileChannel inputStreamChannel = new FileInputStream(file).getChannel();
+            FileChannel  outputStream =
+                new FileOutputStream(directory+ File.separator +file.getName()).getChannel())
+        {
+            inputStreamChannel.transferTo(0, inputStreamChannel.size(), outputStream);
+            return true;
+        }
+        catch (IOException exception) {
+            logger
+                .log(Level.SEVERE, "download file was performed incorrectly", exception);
+            return false;
+        }
+    }
+
+    public boolean deleteFile(String nameOfDeletingFile, User user) {
+        String authorsLogin = user.getLogin();
+
+        try {
+            String command = "cmd /c DEL /F /S /Q /A " + "\"" +
+                pathToStorage + File.separator + nameOfDeletingFile + "\"";
+            Runtime.getRuntime().exec(command);
+            return true;
+
+        } catch (IOException exception) {
+            logger.warning("user " + authorsLogin +
+                " tries to delete file but something went wrong");
+            logger.log(Level.SEVERE, errorForFileService, exception);
+        }
+        return false;
+    }
+    
+    public List<File> getFilesForDepartment(String department) {
+        List<File> actualDepartmentsFiles = new ArrayList<>();
+        List<File> files = getFoldersData();
+        List<FileMetaData> filesMetaData = metaDataDao.findDataByDepartment(connection, department);
+
+        if (filesMetaData != null && files != null) {
+            Map<String, String> mapForSearchingDepartmentsFile = new HashMap<>();
+            for (FileMetaData metadata : filesMetaData) {
+                mapForSearchingDepartmentsFile.put(metadata.getFileName(), metadata.getFileName());
+            }
+            for (File file : files) {
+                if (mapForSearchingDepartmentsFile.containsKey(file.getName()))
+                    actualDepartmentsFiles.add(file);
+            }
+            return actualDepartmentsFiles;
+        }
+        return null;
+    }
+
+    public List<File> getFoldersData() {
+        File[] files = new File(pathToStorage).listFiles();
+        if(files == null) {
+            logger.warning("error download files from " + pathToStorage +
+                " please, check file folder");
+            return null;
+        }
+        return Arrays.asList(files);
+    }
+
+    public File checkFileIsExist(String directoryPath, String fileName) {
+        File target = null;
+        Path root = Paths.get(directoryPath);
+        try (Stream<Path> stream = Files.find(root, Integer.MAX_VALUE, (path, attr) ->
+            path.getFileName().toString().equals(fileName))) {
+            Optional<Path> path = stream.findFirst();
+            if(path.isPresent()) {
+                target = path.get().toFile();
+            }
+        }
+        catch (IOException exception) {
+            logger
+                .log(Level.SEVERE, "file not found", exception);
+        }
+        return target;
+    }
+
+    public boolean checkFileIsCorrect(File file, User user){
+        Pattern patternForSimpleString = Pattern
+            .compile(simpleFileNamePattern, Pattern.CASE_INSENSITIVE);
+
+        if (file != null){
+            if (file.length() > maxFileLength) {
+                logger.warning("user " + user.getLogin() +
+                    " tried to upload an invalid file; incorrect file length");
+                return false;
+            }
+            
+            boolean checkFileName =
+                patternForSimpleString.matcher(file.getName()).find();
+            
+            if (Arrays.stream(acceptableFileFormat)
+                .noneMatch(validExtension -> file.getName().endsWith(validExtension))) {
+                logger.warning("user " + user.getLogin() +
+                    " tried to upload an invalid file; incorrect extension");
+                return false;
+            }
+            if (file.getName().length() > maxFileNameLength) {
+                logger.warning("user " + user.getLogin() +
+                    " tried to upload an invalid file; incorrect file name length");
+                return false;
+            }
+            if (!checkFileName) {
+                logger.warning("trying to add file with incorrect name");
+                return false;
+            }
+
+            return true;
+        }
+        return false;
+    }
+
+    public boolean generateMetaDataForFile(String transformFileName, User user){
+        Optional<FileMetaData> checkMetadata = metaDataDao.findDataByFileName(connection, transformFileName);
+        if (checkMetadata.isEmpty()) {
+            FileMetaData reportMetaData = new FileMetaData();
+            reportMetaData.setAuthor(user.getLogin());
+            reportMetaData.setDepartment(user.getDepartment().name());
+            reportMetaData.setFileName(transformFileName);
+
+            if (metaDataDao.createMetadata(connection, reportMetaData)) {
+                logger.info("generate metadata for report " + transformFileName +
+                    " and user " + user.getLogin() +
+                    " performed correctly");
+                return true;
+            }
+        }
+        logger.warning("the generate metadata for file was performed incorrectly");
+        return false;
+    }
+
 }
