@@ -1,15 +1,7 @@
-export const saveBusinessOperations = async (onboardingId, values) => {
-    delete values?.accountToolName;
-    delete values?.accountOtherVendor;
-    const request = {
-        ...values,
-        kycId: onboardingId,
-        expsToolName: values?.expsToolName === 'Other' ? values?.otherVendor : values?.expsToolName,
-        totalAnnualRevenueAmount: values?.totalAnnualRevenueAmount
-            ? Number(values?.totalAnnualRevenueAmount)
-            : null,
-    };
-    delete request?.otherVendor;
-
-    return await apiCall('post', `/kyc/${onboardingId}/bus-ops`, request);
-};
+ private Product getKYCProduct(Long kycId, String requestType) {
+        List<Product> products = cmlCardProductService.getProductsByKycAndType(kycId, requestType);
+        return products.stream()
+                .filter(product -> COLTConstants.ACCELERATOR_CARD.equalsIgnoreCase(product.getType()))
+                .findAny()
+                .orElse(null);
+    }
