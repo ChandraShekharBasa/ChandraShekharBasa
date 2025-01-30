@@ -1,10 +1,177 @@
-  // Capture the log message
-    ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<Object> logArgCaptor = ArgumentCaptor.forClass(Object.class);
+const onSubmit = async (values) => {
+    let bankerValue = splitinfo(values?.bankerName);
+    // @ts-ignore
+    const {bankerFirstName, bankerLastName} = getBankerName(bankerValue?.[0].name);
+    let treasureValue = splitinfo(values?.treasuryManagementOfficer);
+    let productSpecialistValue = splitinfo(values?.productSalesSpecialist);
 
-    // Verify logger interaction
-    verify(appLogger).info(logMessageCaptor.capture(), logArgCaptor.capture());
+    setShowSpinner(true);
 
-    // Assert the log message and arguments
-    assertEquals("CAPTIS indexing is not completed for CCA.. initiating CAPTIS submission for kycId: {}", logMessageCaptor.getValue());
-    assertEquals(kycInformation.getParentKycId(), logArgCaptor.getValue());
+    const environment = getCurrentEnv(frontEndUrl);
+    const isProd = environment === "prod";
+
+    let bccList = [
+        userData?.email,
+        bankerValue[0].email,
+        productSpecialistValue[0].email,
+        treasureValue[0].email,
+        isProd ? INTERNAL_EMAIL_DISTRO : INTERNAL_TEST_EMAIL_DISTRO
+    ];
+
+    let firstName: string, lastName: string, emailAddress: string;
+    if (
+        values?.systemAdmin === OTHER ||
+        values?.systemAdmin === undefined ||
+        values?.systemAdmin === null
+    ) {
+        firstName = values.recipientFirstName;
+        lastName = values.recipientLastName;
+        emailAddress = values.recipientEmail;
+    } else {
+        const systemAdmin = JSON.parse(values.systemAdmin);
+        firstName = systemAdmin.firstName;
+        lastName = systemAdmin.lastName;
+        emailAddress = systemAdmin.emailAddress;
+    }
+
+    const getRequestJson = (
+        firstName: string,
+        lastName: string,
+        emailAddress: string,
+        products: any,
+        countryCode?: string,
+        phone?: string,
+        jobTitle?: string,
+        linkedKYC?: string
+    ) => ({
+        tin: company?.tinNumber,
+        dfFlag: false,
+        tmoSid: treasureValue?.[0].sid,
+        tmoName: treasureValue?.[0].name,
+        naicCode: "238210", // Assuming a static NAIC code, replace as needed
+        products,
+        sourceId: null,
+        activeEci: company?.ecidId,
+        bankerSid: bankerValue?.[0].sid,
+        costCenter: "250031", // Replace with actual cost center if needed
+        kycOfficer: "R646791", // Replace with actual KYC officer ID if needed
+        sourceType: "credit_originations",
+        businessZip: formatZip(company?.clientAddress?.at(0)?.postalCode || ""),
+        companyName: company?.ecidName,
+        crescendoId: null, // Add logic if necessary
+        prospectEci: company?.ecidId, // Replace if needed
+        requestType: "Products",
+        bankerLocation: "703", // Replace with the actual location if needed
+        businessCity: company?.clientAddress?.at(0)?.city || "",
+        businessState: formatState(company?.clientAddress?.at(0)?.countrySubdivision || ""),
+        bankerLastName: bankerLastName,
+        bankerFirstName: bankerFirstName,
+        businessCountry: company?.clientAddress?.at(0)?.country || "",
+        businessWebsite: null,
+        naicDescription: "Electrical Contractors and Other Wiring Installation Contractors", // Replace as needed
+        bankerEmailAddress: bankerValue?.[0].email,
+        businessPhoneNumber: null,
+        businessAddressLine1: company?.clientAddress?.at(0)?.lineText1 || "",
+        businessAddressLine2: company?.clientAddress?.at(0)?.lineText2 || "",
+        businessAddressLine3: "",
+    });
+
+    const getCommonPayload = (firstName: string, lastName: string, email: string) => ({
+        firstName,
+        lastName,
+        email,
+        channel: "CB-PLATFORM",
+        source: "credit_originations",
+        initiateKyc: true
+    });
+
+    const {
+        recipientPhone,
+        recipientJobTitle,
+        recipientOtherJobTitle,
+        recipientCertifierFirstName,
+        recipientCertifierLastName,
+        recipientCertifierEmail,
+        recipientCertifierPhone,
+        recipientCertifierJobTitle,
+        recipientCertifierOtherJobTitle
+    } = values;
+
+    let linkedKycId: string | undefined;
+
+    const onboardingUsers = [
+        {
+            firstName: recipientCertifierFirstName,
+            lastName: recipientCertifierLastName,
+            email: recipientCertifierEmail,
+            uuid: "", // UUID logic if needed
+            templateData: {
+                from: "no-reply@jpmorgan.com",
+                subject: `${isProd ? "Action required: Certify Commercial Card request" : `${environment} | Action Required: Certify Commercial Card request`}`,
+                personal: `${userData?.firstName} ${userData?.lastName}`,
+                ccAddresses: [
+                    "Credit_Originations_Triad@restricted.chase.com"
+                ],
+                placeholders: {
+                    certifierFirstName: recipientCertifierFirstName,
+                    certifierLastName: recipientCertifierLastName,
+                    toEmailAddress: recipientCertifierEmail,
+                    productName: "Commercial Card",
+                    entity: company?.ecidName,
+                    recipientFirstName: firstName,
+                    recipientLastName: lastName,
+                    certifierEmail: recipientCertifierEmail,
+                    submittersFirstName: userData?.firstName,
+                    submittersLastName: userData?.lastName,
+                    submittersEmail: userData?.email,
+                    currentYear: getCurrentYear()
+                },
+                retentionPeriod: null,
+                signInTemplateId: "certifiersignintemplate",
+                signUpTemplateId: "certifiersignuptemplate",
+                preferencesPolicy: "OVERRIDE"
+            }
+        },
+        // Add other onboarding users if needed
+    ];
+
+    const productObj = {
+        type: "CREDIT",
+        productDetails: {
+            codaDealId: 11048, // Replace with dynamic deal ID if needed
+            dealStatus: "OPEN",
+            marketSegment: "CB"
+        }
+    };
+
+    const requestPayload = {
+        source: "credit_originations",
+        channel: "CB-PLATFORM",
+        onboardingUsers,
+        requestJson: getRequestJson(
+            firstName,
+            lastName,
+            emailAddress,
+            [productObj],
+            recipientCountryCode,
+            recipientPhone,
+            recipientOtherJobTitle || recipientJobTitle,
+            linkedKycId
+        ),
+    };
+
+    try {
+        const res = await sendApplication(requestPayload);
+        if (res.status !== "SUCCESS") {
+            throw new Error("createProfile call failed");
+        }
+    } catch {
+        setHasSubmissionError(true);
+        setShowSpinner(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (linkedKycId) {
+            await cancelApplication(linkedKycId, "Platform failure in creating related request");
+        }
+        return;
+    }
+};
