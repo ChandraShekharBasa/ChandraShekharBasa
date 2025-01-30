@@ -1,288 +1,257 @@
-Injection Flaws - OS Command Injection
+const onSubmit = async (values) => {
+        let bankerValue = splitinfo(values?.bankerName);
+        // @ts-ignore
+        const {bankerFirstName, bankerLastName} = getBankerName(bankerValue?.[0].name);
+        let treasureValue = splitinfo(values?.treasuryManagementOfficer);
+        let productSpecialistValue = splitinfo(values?.productSalesSpecialist);
 
+        setShowSpinner(true);
 
-package com.scw.directoryService.service;
+        const environment = getCurrentEnv(frontEndUrl);
+        const isProd = environment === "prod";
 
-import com.scw.directoryService.dao.impl.FileMetaDataDaoImpl;
-import com.scw.directoryService.dao.impl.ReportDaoImpl;
-import com.scw.directoryService.dao.sqlDao.FileMetaDataDao;
-import com.scw.directoryService.dao.sqlDao.ReportDao;
-import com.scw.directoryService.model.ldapEntity.User;
-import com.scw.directoryService.model.sqlEntity.FileMetaData;
-import com.scw.directoryService.model.sqlEntity.Report;
-import com.scw.directoryService.service.serialization.ReportSerializationFilter;
-import com.scw.directoryService.service.xmlService.XmlReportService;
+        let bccList = [
+            userData?.email,
+            bankerValue[0].email,
+            productSpecialistValue[0].email,
+            treasureValue[0].email,
+            isProd ? INTERNAL_EMAIL_DISTRO : INTERNAL_TEST_EMAIL_DISTRO
+        ];
 
-import java.io.*;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.Connection;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
+        let firstName: string, lastName: string, emailAddress: string;
+        if (
+            values?.systemAdmin === OTHER ||
+            values?.systemAdmin === undefined ||
+            values?.systemAdmin === null
+        ) {
+            firstName = values.recipientFirstName;
+            lastName = values.recipientLastName;
+            emailAddress = values.recipientEmail;
+        } else {
+            const systemAdmin = JSON.parse(values.systemAdmin);
+            firstName = systemAdmin.firstName;
+            lastName = systemAdmin.lastName;
+            emailAddress = systemAdmin.emailAddress;
+        }
 
-public class FileService {
+        const getRequestJson = (
+            firstName: string,
+            lastName: string,
+            emailAddress: string,
+            products: any,
+            countryCode?: string,
+            phone?: string,
+            jobTitle?: string,
+            linkedKYC?: string
+        ) => ({
+            sourceType: "BANKER-MFE",
+            firstName,
+            lastName,
+            emailAddress,
+            companyName: company?.ecidName,
+            businessWebsite: null,
+            businessAddressLine1: company?.clientAddress?.at(0)?.lineText1 || "",
+            businessAddressLine2: company?.clientAddress?.at(0)?.lineText2 || "",
+            businessAddressLine3: "",
+            businessCity: company?.clientAddress?.at(0)?.city || "",
+            businessState: formatState(company?.clientAddress?.at(0)?.countrySubdivision || ""),
+            businessCountry: company?.clientAddress?.at(0)?.country || "",
+            businessZip: formatZip(company?.clientAddress?.at(0)?.postalCode || ""),
+            businessPhoneNumber: null,
+            bankerSid: bankerValue?.[0].sid,
+            bankerFirstName: bankerFirstName,
+            bankerLastName: bankerLastName,
+            bankerEmailAddress: bankerValue?.[0].email,
+            tin: company?.tinNumber,
+            tmoSid: treasureValue?.[0].sid,
+            tmoName: treasureValue?.[0].name,
+            activeEci: company?.ecidId,
+            requestType: "Products",
+            requesterSid: userData?.userProfileId,
+            requesterFirstName: userData?.firstName,
+            requesterLastName: userData?.lastName,
+            requesterEmail: userData?.email,
+            pssSid: productSpecialistValue?.[0].sid,
+            products,
+            countryCode: countryCode,
+            ...(phone && { phone: getPhoneWithoutCountryCode(countryCode, phone) }),
+            ...(jobTitle && { jobTitle }),
+            ...(linkedKYC && { linkedKYC })
+        });
 
-    private static final Logger logger = Logger.getLogger(FileService.class.getName());
+        const getCommonPayload = (firstName: string, lastName: string, email: string) => ({
+            firstName,
+            lastName,
+            email,
+            channel: "CB-PLATFORM",
+            source: "BANKER-MFE",
+            initiateKyc: true
+        });
 
-    private final String pathToStorage = System.getenv("PATH_TO_STORAGE");
-    private final static String nameForShortReports = System.getenv("REPORTS_NAME");
+        const {
+            recipientPhone,
+            recipientJobTitle,
+            recipientOtherJobTitle,
+            recipientCertifierFirstName,
+            recipientCertifierLastName,
+            recipientCertifierEmail,
+            recipientCertifierPhone,
+            recipientCertifierJobTitle,
+            recipientCertifierOtherJobTitle
+        } = values;
 
-    private final static int maxFileLength = 1024 * 1024 *10;
-    private final static int maxFileNameLength = 255;
-    private final static String[] acceptableFileFormat = {".jpeg", ".xml", ".bin"};
-    private static final String simpleFileNamePattern = "^[a-zA-Z0-9,.!?_\\-]+$";
+        let linkedKycId: string | undefined;
 
-    private final static String errorForFileService = "incorrect operation at file " +
-        "(business) service level";
-
-    private XmlReportService xmlReportService;
-    private FileMetaDataDao metaDataDao;
-    private ReportDao reportDao;
-
-    private Connection connection;
-
-    public FileService(Connection connection, XmlReportService xmlReportService) {
-        this.metaDataDao = new FileMetaDataDaoImpl();
-        this.reportDao = new ReportDaoImpl();
-        this.connection = connection;
-        this.xmlReportService = xmlReportService;
-    }
-
-    public boolean uploadFile(File file, User user) {
-        if (checkFileIsCorrect(file, user)) {
-            Optional<FileMetaData> checkMetadataForReport = metaDataDao.findDataByFileName(connection, file.getName());
-
-            if (file.getName().endsWith(".jpeg") && checkMetadataForReport.isEmpty()) {
-
-                String transformFileName = LocalDateTime.now().hashCode() + ".jpeg";
-                try (FileChannel inputStreamChannel = new FileInputStream(file).getChannel();
-                     FileChannel outputStream =
-                         new FileOutputStream(pathToStorage + File.separator + transformFileName).getChannel())
-                {
-                    inputStreamChannel.transferTo(0, inputStreamChannel.size(), outputStream);
-                    boolean successfulCreateMetaDataReportFlag =
-                        generateMetaDataForFile(transformFileName, user);
-
-                    if (successfulCreateMetaDataReportFlag)
-                        return true;
+        if (recipientCertifierFirstName) {
+            const certifierObj = {
+                type: "Certifier",
+                productDetails: {
+                    signerFirstName: firstName,
+                    signerLastName: lastName,
+                    linkedProductType: ProductType.OneCardWithRewards
                 }
-                catch (IOException exception) {
-                    logger.log(Level.SEVERE, errorForFileService, exception);
-                    return false;
+            };
+
+            const certifierRequestJson = getRequestJson(
+                recipientCertifierFirstName,
+                recipientCertifierLastName,
+                recipientCertifierEmail,
+                [certifierObj],
+                certifierCountryCode,
+                recipientCertifierPhone,
+                recipientCertifierOtherJobTitle || recipientCertifierJobTitle
+            );
+
+            const certifierTemplateData = {
+                subject: isProd
+                    ? "Action required: Certify Commercial Card request"
+                    : `${environment} | Action Required: Certify Commercial Card request`,
+                from: "no-reply@jpmorgan.com",
+                bccAddresses: [...new Set(bccList)],
+                signInTemplateId: "certifiersignintemplate",
+                signUpTemplateId: "certifiersignuptemplate",
+                personal: `${userData?.firstName} ${userData?.lastName}`,
+                placeholders: {
+                    certifierFirstName: recipientCertifierFirstName,
+                    certifierLastName: recipientCertifierLastName,
+                    toEmailAddress: recipientCertifierEmail,
+                    productName: "Commercial Card",
+                    entity: company?.ecidName,
+                    recipientFirstName: firstName,
+                    recipientLastName: lastName,
+                    certifierEmail: recipientCertifierEmail,
+                    submittersFirstName: userData?.firstName,
+                    submittersLastName: userData?.lastName,
+                    submittersEmail: userData?.email,
+                    currentYear: getCurrentYear()
                 }
-            }
+            };
 
-            if (file.getName().endsWith(".xml")){
-                boolean successfulFileUpload = uploadFileFromXml(file, user);
+            const certifierPayload = {
+                ...getCommonPayload(
+                    recipientCertifierFirstName,
+                    recipientCertifierLastName,
+                    recipientCertifierEmail
+                ),
+                requestJson: certifierRequestJson,
+                templateData: certifierTemplateData
+            };
 
-                if (successfulFileUpload)
-                    return true;
-            }
-        }
-        logger.warning("user " + user.getLogin() + " can't upload file");
-        return false;
-    }
-
-    public boolean uploadFileFromXml(File file, User user){
-        Optional<Report> reportValuesFromXml = xmlReportService.getReportFromXml(file);
-
-        if(reportValuesFromXml.isPresent()){
-            String transformFileName =
-                nameForShortReports + LocalDateTime.now().hashCode() + ".xml";
-
-            try (FileChannel inputStreamChannel =
-                     new FileInputStream(file).getChannel();
-                 FileChannel outputStream =
-                     new FileOutputStream(pathToStorage + File.separator + transformFileName)
-                         .getChannel())
-            {
-                inputStreamChannel.transferTo(0, inputStreamChannel.size(), outputStream);
-                boolean successfulCreateMetaDataReport =
-                    generateMetaDataForFile(transformFileName, user);
-                boolean checkSuccessfulCreateReport =
-                    reportDao.createReport(connection, reportValuesFromXml.get(), transformFileName);
-
-                if (checkSuccessfulCreateReport && successfulCreateMetaDataReport)
-                    return true;
-
-            } catch (IOException exception) {
-                logger.log(Level.SEVERE, errorForFileService, exception);
-                return false;
-            }
-        }
-        logger.warning(errorForFileService);
-        return false;
-    }
-
-    public boolean serializationUploadFile(File file, User user) {
-        if (checkFileIsCorrect(file, user)) {
-
-            Optional<Report> reportFromObject = readFileFromObject(file);
-            if (reportFromObject.isPresent()) {
-                String transformFileName = nameForShortReports +LocalDateTime.now().hashCode()+".xml";
-                Optional<Report> checkReportName = reportDao.findReportByFileName(connection, transformFileName);
-
-                if (checkReportName.isEmpty()) {
-                    reportDao.createReport(connection, reportFromObject.get(), transformFileName);
-                    generateMetaDataForFile(transformFileName, user);
-                    xmlReportService.createXMLReportFromObject(reportFromObject.get(), pathToStorage, transformFileName);
-                    return true;
+            try {
+                const certifierRes = await sendApplication(certifierPayload);
+                if (certifierRes.status !== "SUCCESS") {
+                    throw new Error("createProfile call for certifier failed");
                 }
+                linkedKycId = certifierRes.kycId;
+            } catch {
+                setHasSubmissionError(true);
+                setShowSpinner(false);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                return;
             }
-            logger.warning("file serialization failed; " + user.getLogin());
         }
-        return false;
-    }
 
-    public Optional<Report> readFileFromObject(File file) {
-        ReportSerializationFilter filter = new ReportSerializationFilter();
-        try (ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(file))) {
+        const oneCardTemplateData = {
+            subject: isProd
+                ? "Your Commercial Card request is ready"
+                : `${environment} | Your Commercial Card request is ready`,
+            from: "no-reply@jpmorgan.com",
+            bccAddresses: [...new Set(bccList)],
+            signInTemplateId: "one-card-onboarding-signin",
+            signUpTemplateId: "one-card-onboarding-signup",
+            personal: `${userData?.firstName} ${userData?.lastName}`,
+            placeholders: {
+                clientFirstName: firstName,
+                clientLastName: lastName,
+                toEmailAddress: emailAddress,
+                entity: company?.ecidName,
+                submittersFirstName: userData?.firstName,
+                submittersLastName: userData?.lastName,
+                submittersEmail: userData?.email,
+                clientEmail: emailAddress,
+                currentYear: getCurrentYear()
+            }
+        };
 
-            objectInputStream.setObjectInputFilter(filter);
-            return Optional.of((Report) objectInputStream.readObject());
-
-        } catch (IOException | ClassNotFoundException exception) {
-            logger.log(Level.SEVERE, errorForFileService, exception);
+        let productTypePayload: string;
+        switch (product?.type) {
+            case ProductType.AcceleratorCard:
+                productTypePayload = "ACCELERATOR_CARD";
+                break;
+            case ProductType.StandardOneCardWithRebates:
+                productTypePayload = "ONE_CARD_REBATES";
+                break;
+            default:
+                productTypePayload = "One Card Reward";
         }
-        return Optional.empty();
-    }
 
-    public boolean downLoadFile(File file, File directory) {
-        try(FileChannel inputStreamChannel = new FileInputStream(file).getChannel();
-            FileChannel  outputStream =
-                new FileOutputStream(directory+ File.separator +file.getName()).getChannel())
-        {
-            inputStreamChannel.transferTo(0, inputStreamChannel.size(), outputStream);
-            return true;
-        }
-        catch (IOException exception) {
-            logger
-                .log(Level.SEVERE, "download file was performed incorrectly", exception);
-            return false;
-        }
-    }
+        const productObj = {
+            type: productTypePayload,
+            productDetails: {
+                marketSegment: `CB MMBSI`,
+                annualSpend: product?.estAnnualSpend,
+                facilityAmount: values?.facilityAmount || '',
+                settlementTerms: product?.settlementTerms,
+                spendCenter: product?.spendCenter || false,
+                ...((product?.type === ProductType.OneCardWithRewards ||
+                    product?.type === ProductType.DynamicCard) && {
+                    creditLimit: creditLimit || 0,
+                }),
+                ...(product?.tier && { tier: product.tier, creditLimit: product.tier }),
+                ...(product?.virtualCard && { virtualCard: product.virtualCard }),
+            },
+        };
 
-    public boolean deleteFile(String nameOfDeletingFile, User user) {
-        String authorsLogin = user.getLogin();
+        const oneCardPayload = {
+            ...getCommonPayload(firstName, lastName, emailAddress),
+            requestJson: getRequestJson(
+                firstName,
+                lastName,
+                emailAddress,
+                [productObj],
+                recipientCountryCode,
+                recipientPhone,
+                recipientOtherJobTitle || recipientJobTitle,
+                linkedKycId
+            ),
+            templateData: oneCardTemplateData
+        };
 
         try {
-            String command = "cmd /c DEL /F /S /Q /A " + "\"" +
-                pathToStorage + File.separator + nameOfDeletingFile + "\"";
-            Runtime.getRuntime().exec(command);
-            return true;
+            const oneCardRes = await sendApplication(oneCardPayload);
 
-        } catch (IOException exception) {
-            logger.warning("user " + authorsLogin +
-                " tries to delete file but something went wrong");
-            logger.log(Level.SEVERE, errorForFileService, exception);
+            if (oneCardRes.status !== "SUCCESS") {
+                throw new Error("createProfile call for one card failed");
+            }
+        } catch {
+            setHasSubmissionError(true);
+            setShowSpinner(false);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            if (linkedKycId) {
+                await cancelApplication(
+                    linkedKycId,
+                    "Platform failure in creating related request"
+                );
+            }
+            return;
         }
-        return false;
-    }
-    
-    public List<File> getFilesForDepartment(String department) {
-        List<File> actualDepartmentsFiles = new ArrayList<>();
-        List<File> files = getFoldersData();
-        List<FileMetaData> filesMetaData = metaDataDao.findDataByDepartment(connection, department);
-
-        if (filesMetaData != null && files != null) {
-            Map<String, String> mapForSearchingDepartmentsFile = new HashMap<>();
-            for (FileMetaData metadata : filesMetaData) {
-                mapForSearchingDepartmentsFile.put(metadata.getFileName(), metadata.getFileName());
-            }
-            for (File file : files) {
-                if (mapForSearchingDepartmentsFile.containsKey(file.getName()))
-                    actualDepartmentsFiles.add(file);
-            }
-            return actualDepartmentsFiles;
-        }
-        return null;
-    }
-
-    public List<File> getFoldersData() {
-        File[] files = new File(pathToStorage).listFiles();
-        if(files == null) {
-            logger.warning("error download files from " + pathToStorage +
-                " please, check file folder");
-            return null;
-        }
-        return Arrays.asList(files);
-    }
-
-    public File checkFileIsExist(String directoryPath, String fileName) {
-        File target = null;
-        Path root = Paths.get(directoryPath);
-        try (Stream<Path> stream = Files.find(root, Integer.MAX_VALUE, (path, attr) ->
-            path.getFileName().toString().equals(fileName))) {
-            Optional<Path> path = stream.findFirst();
-            if(path.isPresent()) {
-                target = path.get().toFile();
-            }
-        }
-        catch (IOException exception) {
-            logger
-                .log(Level.SEVERE, "file not found", exception);
-        }
-        return target;
-    }
-
-    public boolean checkFileIsCorrect(File file, User user){
-        Pattern patternForSimpleString = Pattern
-            .compile(simpleFileNamePattern, Pattern.CASE_INSENSITIVE);
-
-        if (file != null){
-            if (file.length() > maxFileLength) {
-                logger.warning("user " + user.getLogin() +
-                    " tried to upload an invalid file; incorrect file length");
-                return false;
-            }
-            
-            boolean checkFileName =
-                patternForSimpleString.matcher(file.getName()).find();
-            
-            if (Arrays.stream(acceptableFileFormat)
-                .noneMatch(validExtension -> file.getName().endsWith(validExtension))) {
-                logger.warning("user " + user.getLogin() +
-                    " tried to upload an invalid file; incorrect extension");
-                return false;
-            }
-            if (file.getName().length() > maxFileNameLength) {
-                logger.warning("user " + user.getLogin() +
-                    " tried to upload an invalid file; incorrect file name length");
-                return false;
-            }
-            if (!checkFileName) {
-                logger.warning("trying to add file with incorrect name");
-                return false;
-            }
-
-            return true;
-        }
-        return false;
-    }
-
-    public boolean generateMetaDataForFile(String transformFileName, User user){
-        Optional<FileMetaData> checkMetadata = metaDataDao.findDataByFileName(connection, transformFileName);
-        if (checkMetadata.isEmpty()) {
-            FileMetaData reportMetaData = new FileMetaData();
-            reportMetaData.setAuthor(user.getLogin());
-            reportMetaData.setDepartment(user.getDepartment().name());
-            reportMetaData.setFileName(transformFileName);
-
-            if (metaDataDao.createMetadata(connection, reportMetaData)) {
-                logger.info("generate metadata for report " + transformFileName +
-                    " and user " + user.getLogin() +
-                    " performed correctly");
-                return true;
-            }
-        }
-        logger.warning("the generate metadata for file was performed incorrectly");
-        return false;
-    }
-
-}
