@@ -1,257 +1,121 @@
-const onSubmit = async (values) => {
-        let bankerValue = splitinfo(values?.bankerName);
-        // @ts-ignore
-        const {bankerFirstName, bankerLastName} = getBankerName(bankerValue?.[0].name);
-        let treasureValue = splitinfo(values?.treasuryManagementOfficer);
-        let productSpecialistValue = splitinfo(values?.productSalesSpecialist);
+import {
+    bankerDetails,
+    cancelApplication,
+    companySearch,
+    employeeSearch, getCertifierDetails,
+    getCompanyOverview,
+    getExistingRequests,
+    getProducts,
+    getRequestDetails,
+    sendApplication
+} from "../api";
+// import {mockBankerDetails} from '_util/mockData';
+// import {companyInfo, mockEmployeeDetails} from '_util/mockData';
 
-        setShowSpinner(true);
-
-        const environment = getCurrentEnv(frontEndUrl);
-        const isProd = environment === "prod";
-
-        let bccList = [
-            userData?.email,
-            bankerValue[0].email,
-            productSpecialistValue[0].email,
-            treasureValue[0].email,
-            isProd ? INTERNAL_EMAIL_DISTRO : INTERNAL_TEST_EMAIL_DISTRO
-        ];
-
-        let firstName: string, lastName: string, emailAddress: string;
-        if (
-            values?.systemAdmin === OTHER ||
-            values?.systemAdmin === undefined ||
-            values?.systemAdmin === null
-        ) {
-            firstName = values.recipientFirstName;
-            lastName = values.recipientLastName;
-            emailAddress = values.recipientEmail;
-        } else {
-            const systemAdmin = JSON.parse(values.systemAdmin);
-            firstName = systemAdmin.firstName;
-            lastName = systemAdmin.lastName;
-            emailAddress = systemAdmin.emailAddress;
-        }
-
-        const getRequestJson = (
-            firstName: string,
-            lastName: string,
-            emailAddress: string,
-            products: any,
-            countryCode?: string,
-            phone?: string,
-            jobTitle?: string,
-            linkedKYC?: string
-        ) => ({
-            sourceType: "BANKER-MFE",
-            firstName,
-            lastName,
-            emailAddress,
-            companyName: company?.ecidName,
-            businessWebsite: null,
-            businessAddressLine1: company?.clientAddress?.at(0)?.lineText1 || "",
-            businessAddressLine2: company?.clientAddress?.at(0)?.lineText2 || "",
-            businessAddressLine3: "",
-            businessCity: company?.clientAddress?.at(0)?.city || "",
-            businessState: formatState(company?.clientAddress?.at(0)?.countrySubdivision || ""),
-            businessCountry: company?.clientAddress?.at(0)?.country || "",
-            businessZip: formatZip(company?.clientAddress?.at(0)?.postalCode || ""),
-            businessPhoneNumber: null,
-            bankerSid: bankerValue?.[0].sid,
-            bankerFirstName: bankerFirstName,
-            bankerLastName: bankerLastName,
-            bankerEmailAddress: bankerValue?.[0].email,
-            tin: company?.tinNumber,
-            tmoSid: treasureValue?.[0].sid,
-            tmoName: treasureValue?.[0].name,
-            activeEci: company?.ecidId,
-            requestType: "Products",
-            requesterSid: userData?.userProfileId,
-            requesterFirstName: userData?.firstName,
-            requesterLastName: userData?.lastName,
-            requesterEmail: userData?.email,
-            pssSid: productSpecialistValue?.[0].sid,
-            products,
-            countryCode: countryCode,
-            ...(phone && { phone: getPhoneWithoutCountryCode(countryCode, phone) }),
-            ...(jobTitle && { jobTitle }),
-            ...(linkedKYC && { linkedKYC })
-        });
-
-        const getCommonPayload = (firstName: string, lastName: string, email: string) => ({
-            firstName,
-            lastName,
-            email,
-            channel: "CB-PLATFORM",
-            source: "BANKER-MFE",
-            initiateKyc: true
-        });
-
-        const {
-            recipientPhone,
-            recipientJobTitle,
-            recipientOtherJobTitle,
-            recipientCertifierFirstName,
-            recipientCertifierLastName,
-            recipientCertifierEmail,
-            recipientCertifierPhone,
-            recipientCertifierJobTitle,
-            recipientCertifierOtherJobTitle
-        } = values;
-
-        let linkedKycId: string | undefined;
-
-        if (recipientCertifierFirstName) {
-            const certifierObj = {
-                type: "Certifier",
-                productDetails: {
-                    signerFirstName: firstName,
-                    signerLastName: lastName,
-                    linkedProductType: ProductType.OneCardWithRewards
-                }
-            };
-
-            const certifierRequestJson = getRequestJson(
-                recipientCertifierFirstName,
-                recipientCertifierLastName,
-                recipientCertifierEmail,
-                [certifierObj],
-                certifierCountryCode,
-                recipientCertifierPhone,
-                recipientCertifierOtherJobTitle || recipientCertifierJobTitle
-            );
-
-            const certifierTemplateData = {
-                subject: isProd
-                    ? "Action required: Certify Commercial Card request"
-                    : `${environment} | Action Required: Certify Commercial Card request`,
-                from: "no-reply@jpmorgan.com",
-                bccAddresses: [...new Set(bccList)],
-                signInTemplateId: "certifiersignintemplate",
-                signUpTemplateId: "certifiersignuptemplate",
-                personal: `${userData?.firstName} ${userData?.lastName}`,
-                placeholders: {
-                    certifierFirstName: recipientCertifierFirstName,
-                    certifierLastName: recipientCertifierLastName,
-                    toEmailAddress: recipientCertifierEmail,
-                    productName: "Commercial Card",
-                    entity: company?.ecidName,
-                    recipientFirstName: firstName,
-                    recipientLastName: lastName,
-                    certifierEmail: recipientCertifierEmail,
-                    submittersFirstName: userData?.firstName,
-                    submittersLastName: userData?.lastName,
-                    submittersEmail: userData?.email,
-                    currentYear: getCurrentYear()
-                }
-            };
-
-            const certifierPayload = {
-                ...getCommonPayload(
-                    recipientCertifierFirstName,
-                    recipientCertifierLastName,
-                    recipientCertifierEmail
-                ),
-                requestJson: certifierRequestJson,
-                templateData: certifierTemplateData
-            };
-
-            try {
-                const certifierRes = await sendApplication(certifierPayload);
-                if (certifierRes.status !== "SUCCESS") {
-                    throw new Error("createProfile call for certifier failed");
-                }
-                linkedKycId = certifierRes.kycId;
-            } catch {
-                setHasSubmissionError(true);
-                setShowSpinner(false);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-                return;
+describe("Company search test", () => {
+    it("should return company info", async () => {
+        const output = await companySearch("1234567891");
+        expect(output).toEqual([
+            {
+                ecidId: "1234567891",
+                ecidName: "Wilson and Sons",
+                segment: "Innovation Economy",
+                status: "ACT",
+                tinNumber: "128457349543"
             }
-        }
-
-        const oneCardTemplateData = {
-            subject: isProd
-                ? "Your Commercial Card request is ready"
-                : `${environment} | Your Commercial Card request is ready`,
-            from: "no-reply@jpmorgan.com",
-            bccAddresses: [...new Set(bccList)],
-            signInTemplateId: "one-card-onboarding-signin",
-            signUpTemplateId: "one-card-onboarding-signup",
-            personal: `${userData?.firstName} ${userData?.lastName}`,
-            placeholders: {
-                clientFirstName: firstName,
-                clientLastName: lastName,
-                toEmailAddress: emailAddress,
-                entity: company?.ecidName,
-                submittersFirstName: userData?.firstName,
-                submittersLastName: userData?.lastName,
-                submittersEmail: userData?.email,
-                clientEmail: emailAddress,
-                currentYear: getCurrentYear()
-            }
-        };
-
-        let productTypePayload: string;
-        switch (product?.type) {
-            case ProductType.AcceleratorCard:
-                productTypePayload = "ACCELERATOR_CARD";
-                break;
-            case ProductType.StandardOneCardWithRebates:
-                productTypePayload = "ONE_CARD_REBATES";
-                break;
-            default:
-                productTypePayload = "One Card Reward";
-        }
-
-        const productObj = {
-            type: productTypePayload,
-            productDetails: {
-                marketSegment: `CB MMBSI`,
-                annualSpend: product?.estAnnualSpend,
-                facilityAmount: values?.facilityAmount || '',
-                settlementTerms: product?.settlementTerms,
-                spendCenter: product?.spendCenter || false,
-                ...((product?.type === ProductType.OneCardWithRewards ||
-                    product?.type === ProductType.DynamicCard) && {
-                    creditLimit: creditLimit || 0,
-                }),
-                ...(product?.tier && { tier: product.tier, creditLimit: product.tier }),
-                ...(product?.virtualCard && { virtualCard: product.virtualCard }),
+        ]);
+    });
+    it("Employee search", async () => {
+        const output = await employeeSearch("1234567891");
+        expect(output).toBeDefined();
+    });
+    it("banker details", async () => {
+        const output = await bankerDetails("V810323");
+        expect(output).toEqual({
+            empEmail: "james.mossanite@chase.com",
+            employeeSID: "R725904",
+            firstName: "James",
+            lastName: "Mossanite"
+        });
+    });
+    it("cancel Application", async () => {
+        const output = await cancelApplication("1234567891", "canceledReason");
+        expect(output).toEqual({
+            messsage: "Successfully canceled application with KYCid "
+        });
+    });
+    it("get company overview", async () => {
+        const output = await getCompanyOverview("1234567891");
+        expect(output).toEqual({
+            annualRevenue: "1,234,567",
+            chaseTeam: [
+                {
+                    email: "h.silverstein@chase.com",
+                    name: "Holland Silverstein",
+                    phone: "203-922-1010"
+                },
+                {
+                    email: "c.thompson@chase.com",
+                    name: "Chris Thompson",
+                    phone: "203-922-1011"
+                }
+            ],
+            ecidName: "Wilson and Sons",
+            segment: "Middle Market Core",
+            status: "ACT",
+            tinNumber: 45124512784
+        });
+    });
+    it("Get existing requests", () => {
+        const output = getExistingRequests("1234567891", {
+            kycInfoMap: {
+                requestType: "Products",
+                isSoftDeleted: "false",
+                hasClientStartedOnboarding: "true",
+                isKYCInfoConfirmed: "false"
             },
-        };
+            dateMap: {},
+            busInfoMap: {},
+            busOpsMap: {},
+            propertyMap: {},
+            rowsPerPage: 10,
+            pageNumber: 0
+        });
+        expect(output).toBeDefined();
+    });
+    it("Get products", async () => {
+        const output = await getProducts("1234567891");
+        expect(output).toBeDefined();
+    });
+    it("Send application", async () => {
+        const output = await sendApplication({});
+        expect(output).toEqual(undefined);
+    });
+    it.only("Get request details", async () => {
+        const output = await getRequestDetails("123");
+        expect(output).toBeDefined();
+    });
 
-        const oneCardPayload = {
-            ...getCommonPayload(firstName, lastName, emailAddress),
-            requestJson: getRequestJson(
-                firstName,
-                lastName,
-                emailAddress,
-                [productObj],
-                recipientCountryCode,
-                recipientPhone,
-                recipientOtherJobTitle || recipientJobTitle,
-                linkedKycId
-            ),
-            templateData: oneCardTemplateData
-        };
+    it("Get Certifier details", () => {
+        const output= getCertifierDetails("1234567891",{
+            kycInfoMap: {
+                requestType: "Products",
+                isSoftDeleted: "false",
+                hasClientStartedOnboarding: "true",
+                isKYCInfoConfirmed: "false"
+            },
+            dateMap: {},
+            busInfoMap: {},
+            busOpsMap: {},
+            propertyMap: {},
+            rowsPerPage: 10,
+            pageNumber: 0
+        });
+        expect(output).toBeDefined();
+    });
 
-        try {
-            const oneCardRes = await sendApplication(oneCardPayload);
-
-            if (oneCardRes.status !== "SUCCESS") {
-                throw new Error("createProfile call for one card failed");
-            }
-        } catch {
-            setHasSubmissionError(true);
-            setShowSpinner(false);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            if (linkedKycId) {
-                await cancelApplication(
-                    linkedKycId,
-                    "Platform failure in creating related request"
-                );
-            }
-            return;
-        }
+    it.only("Get Certifier details", async () => {
+        const output = await getCertifierDetails("1232");
+        expect(output).toBeDefined();
+    });
+});
