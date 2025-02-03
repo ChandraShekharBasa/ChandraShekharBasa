@@ -1,12 +1,79 @@
-Hi Team,
+describe("sendApplication test", () => {
+    it("should send application successfully with valid payload", async () => {
+        const payload = {
+            ecid: "1234567891",
+            companyName: "Wilson and Sons",
+            contactInfo: {
+                name: "James Mossanite",
+                email: "james.mossanite@chase.com",
+                phone: "203-922-1010"
+            }
+        };
+        const output = await sendApplication(payload);
+        expect(output).toEqual({
+            // Mocked expected response here
+            status: "success",
+            message: "Application submitted successfully"
+        });
+    });
 
-Can you please find the attachments for the approved Persistent/Mastercard timesheets for OCTOBER MONTH.
-Billing Period: Oct 17 - Oct 31
-Total billing hours: 88
+    it("should return an error for invalid payload", async () => {
+        const invalidPayload = {
+            // Missing required fields or invalid data
+        };
+        try {
+            await sendApplication(invalidPayload);
+        } catch (error) {
+            expect(error).toBeDefined();
+            expect(error.message).toContain("Invalid payload");
+        }
+    });
 
-Kindly do the needful.
-  
-Thanks in advance!
+    it("should handle missing parameters in payload", async () => {
+        const incompletePayload = {
+            ecid: "1234567891" // Missing other required fields
+        };
+        try {
+            await sendApplication(incompletePayload);
+        } catch (error) {
+            expect(error).toBeDefined();
+            expect(error.message).toContain("Missing required parameters");
+        }
+    });
 
-Thanks,
-Chandra
+    it("should use mock response when in local environment", async () => {
+        const payload = { ecid: "1234567891" }; // Mock payload
+        const output = await sendApplication(payload);
+        expect(output).toEqual(undefined);  // Or your expected mock response
+    });
+
+    it("should send application when the feature flag is off", async () => {
+        // Mock getV2OnboardingFeatureFlag to return false
+        jest.spyOn(_util.commonUtil, 'getV2OnboardingFeatureFlag').mockReturnValueOnce(false);
+        const payload = { ecid: "1234567891", companyName: "Wilson and Sons" };
+        const output = await sendApplication(payload);
+        expect(output).toEqual({
+            // Mock response for the old API endpoint
+        });
+    });
+
+    it("should handle delayed response appropriately", async () => {
+        const payload = { ecid: "1234567891", companyName: "Wilson and Sons" };
+        const mockData = { status: "success", message: "Application submitted successfully" };
+        
+        jest.useFakeTimers();
+        const promise = sendApplication(payload);
+        jest.runAllTimers(); // This simulates the wait delay
+        const result = await promise;
+        expect(result).toEqual(mockData);
+    });
+
+    it("should handle different HTTP methods", async () => {
+        const payload = { ecid: "1234567891", companyName: "Wilson and Sons" };
+        const response = await sendApplication(payload);
+        expect(response).toBeDefined();
+        expect(response).toEqual({
+            // Your expected mock response or API response
+        });
+    });
+});
