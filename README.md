@@ -1,137 +1,187 @@
-{
-    "source": "credit_originations",
-    "channel": "CB-PLATFORM",
-    "onboardingUsers": [
-        {
-            "firstName": "Ved",
-            "lastName": "Musu",
-            "email": "vedanth.musunuru@gmail.com",
-            "uuid": "",
-            "templateData": {
-                "from": "no-reply@jpmorgan.com",
-                "subject": "Swapna Test has invited you to JPMorgan Chase’s Digital Credit Origination",
-                "metadata": false,
-                "personal": "Digital Credit Origination – JPMorgan Chase Test",
-                "templateId": null,
-                "ccAddresses": [
-                    "Credit_Originations_Triad@restricted.chase.com"
-                ],
-                "bccAddresses": null,
-                "placeholders": {
-                    "title": "Credit Inquiry",
-                    "banner": "cid=coda-banner.png",
-                    "heading": "Sign in with your existing profile",
-                    "content1": "Thank you for your interest in JPMorgan Chase credit offerings.",
-                    "content2": "We invite you to get started by signing in with your existing profile to upload required documents for your credit inquiry.",
-                    "imageUrl": "cid=progress_tracker_-_step_1.png",
-                    "emailImage": "cid=coda-email.png",
-                    "phoneImage": "cid=coda-call.png",
-                    "bannerWidth": "708",
-                    "buttonImage": "cid=coda-sign-in-button.png",
-                    "buttonWidth": "93",
-                    "currentYear": "2024",
-                    "requestType": "credit inquiry",
-                    "bannerHeight": "200",
-                    "buttonHeight": "48",
-                    "contactEmail": "dan.caputo@cbcrm.chase.com.invalid",
-                    "contactPhone": "+1-212-622-4424",
-                    "contactTitle": "Banker",
-                    "userFirstName": "Ved",
-                    "contactFullName": "Ved Musu",
-                    "contactInitials": "DC",
-                    "disclaimerText1": ""
-                },
-                "retentionPeriod": null,
-                "signInTemplateId": "coda-credit-portal-progress1",
-                "signUpTemplateId": null,
-                "preferencesPolicy": "OVERRIDE"
-            }
-        },
-        {
-            "firstName": "Asif",
-            "lastName": "Test",
-            "email": "asif.uichicago@gmail.com",
-            "uuid": "",
-            "templateData": {
-                "from": "no-reply@jpmorgan.com",
-                "subject": "Swapna Test has invited you to JPMorgan Chase’s Digital Credit Origination",
-                "metadata": false,
-                "personal": "Digital Credit Origination – JPMorgan Chase Test",
-                "templateId": null,
-                "ccAddresses": [
-                    "Credit_Originations_Triad@restricted.chase.com"
-                ],
-                "bccAddresses": null,
-                "placeholders": {
-                    "title": "Credit Inquiry",
-                    "banner": "cid=coda-banner.png",
-                    "heading": "Sign in with your existing profile",
-                    "content1": "Thank you for your interest in JPMorgan Chase credit offerings.",
-                    "content2": "We invite you to get started by signing in with your existing profile to upload required documents for your credit inquiry.",
-                    "imageUrl": "cid=progress_tracker_-_step_1.png",
-                    "emailImage": "cid=coda-email.png",
-                    "phoneImage": "cid=coda-call.png",
-                    "bannerWidth": "708",
-                    "buttonImage": "cid=coda-sign-in-button.png",
-                    "buttonWidth": "93",
-                    "currentYear": "2024",
-                    "requestType": "credit inquiry",
-                    "bannerHeight": "200",
-                    "buttonHeight": "48",
-                    "contactEmail": "dan.caputo@cbcrm.chase.com.invalid",
-                    "contactPhone": "+1-212-622-4424",
-                    "contactTitle": "Banker",
-                    "userFirstName": "Thomas",
-                    "contactFullName": "Thomas Lee",
-                    "contactInitials": "DC",
-                    "disclaimerText1": ""
-                },
-                "retentionPeriod": null,
-                "signInTemplateId": "coda-credit-portal-progress1",
-                "signUpTemplateId": null,
-                "preferencesPolicy": "OVERRIDE"
-            }
+import { baseUrl, IS_LOCAL, kycProxy, platformProxy, wait } from "./constants";
+import {
+    companyInfo,
+    getFormById,
+    mockBankerDetails,
+    mockEmployeeDetails,
+    mockGetCertifierDetails,
+    mockGetCompanyOverview,
+    mockGetExistingRequests,
+    mockGetProducts,
+    mockGetRequestDetails,
+    mockSpendLimit
+} from "./mockData";
+import { getV2OnboardingFeatureFlag } from "_util/commonUtil";
+
+const apiCall = async (path, mockData, forceMock?, method?, payload?, notData?) => {
+    return new Promise(async (resolve, reject) => {
+        if (IS_LOCAL || forceMock) {
+            // below ternary is beacuse dashboard call doesn't return in {data: ...}
+            // wait greater than 4999 cause issues for unit test
+            notData
+                ? resolve(wait(4000).then(() => mockData))
+                : resolve(wait(2000).then(() => mockData.data));
+        } else {
+            const res = await fetch(`${baseUrl}${path}`, {
+                method: method || "GET",
+                credentials: "include",
+                headers: new Headers({ "content-type": "application/json" }),
+                redirect: "follow",
+                body: payload !== undefined ? JSON.stringify(payload) : null
+            })
+                .then((response) => response.json())
+                .catch((err) => {
+                    console.log("Err:", err);
+                    reject(res);
+                });
+            // below ternary is beacuse dashboard call doesn't return in {data: ...}
+            notData ? resolve(res) : resolve(res.data);
         }
-    ],
-    "requestJson": {
-        "tin": "",
-        "dfFlag": false,
-        "tmoSid": "O718941",
-        "tmoName": "Swapna Adusumilli",
-        "naicCode": "238210",
-        "products": [
-            {
-                "type": "CREDIT",
-                "productDetails": {
-                    "codaDealId": 11048,
-                    "dealStatus": "OPEN",
-                    "marketSegment": "CB"
-                }
-            }
-        ],
-        "sourceId": null,
-        "activeEci": "0296096310",
-        "bankerSid": "R624742",
-        "costCenter": "250031",
-        "kycOfficer": "R646791",
-        "sourceType": "credit_originations",
-        "businessZip": "537160000",
-        "companyName": "ABC sells to other commercial businesses that utilize their precision components into a finished product or assembly to be used in a finished product further down the supply chain.\n",
-        "crescendoId": null,
-        "prospectEci": "0296096310",
-        "requestType": "Products",
-        "bankLocation": "703",
-        "businessCity": "MADISON",
-        "businessState": null,
-        "bankerLastName": "Hensley",
-        "bankerFirstName": "Duncan",
-        "businessCountry": "US",
-        "businessWebsite": null,
-        "naicDescription": "Electrical Contractors and Other Wiring Installation Contractors",
-        "bankerEmailAddress": "swapna.adusumilli@jpmchase.com",
-        "businessPhoneNumber": null,
-        "businessAddressLine1": "4817 ELDORADO LN",
-        "businessAddressLine2": null,
-        "businessAddressLine3": null
+    });
+};
+
+export const bankerDetails = async (sid): Promise<any> => {
+    const bankerDetailsResponse: any = await apiCall(
+        `${kycProxy}/employee/search?searchData=${sid}`,
+        mockEmployeeDetails,
+        false
+    );
+    if (IS_LOCAL) {
+        return mockBankerDetails.data.at(0);
+    } else {
+        return bankerDetailsResponse;
     }
-}
+};
+
+export const cancelApplication = async (value: string, canceledReason: string): Promise<any> => {
+    const cancelResponse: any = await apiCall(
+        `${kycProxy}/cmlcard/${value}/cancel-application`,
+        {},
+        false,
+        "POST",
+        { canceledReason }
+    );
+    if (IS_LOCAL) {
+        return {
+            messsage: "Successfully canceled application with KYCid "
+        };
+    } else {
+        return cancelResponse;
+    }
+};
+
+export const companySearch = async (value): Promise<any> => {
+    const response: any = await apiCall(
+        `${kycProxy}/client/clientSearch?ecid=${value}`,
+        companyInfo,
+        false
+    );
+    if (IS_LOCAL) {
+        return response.filter(
+            (e) => e.ecidName.toLowerCase().includes(value.toLowerCase()) || e.ecidId === value
+        );
+    } else {
+        return response;
+    }
+};
+
+export const employeeSearch = async (value): Promise<any> => {
+    const employeeSearchResponse: any = await apiCall(
+        `${kycProxy}/employee/search?searchData=${value}`,
+        mockEmployeeDetails,
+        false
+    );
+    if (IS_LOCAL) {
+        return employeeSearchResponse.filter(
+            (e) =>
+                e.firstName.toLowerCase().includes(value.toLowerCase()) || e.employeeSID === value
+        );
+    } else {
+        return employeeSearchResponse;
+    }
+};
+
+export const getCompanyOverview = async (ecid: string): Promise<any> => {
+    const companyOverview: any = await apiCall(
+        `${kycProxy}/client/clientDetail?ecid=${ecid}`,
+        mockGetCompanyOverview(ecid)
+    );
+    return companyOverview.at(0);
+};
+
+export const getCreditLimit = async (ecid: string): Promise<any> => {
+    const creditDetails: any = await apiCall(
+        `${kycProxy}/cmlcard/${ecid}/eci-credit-details`,
+        mockSpendLimit,
+        false,
+        undefined,
+        undefined,
+        true
+    );
+    return creditDetails;
+};
+
+export const getExistingRequests = async (ecid: string, payload: any): Promise<any> => {
+    const getExistingRequestsResponse: any = await apiCall(
+        `api/cdd/v1/internal/dashboard`,
+        mockGetExistingRequests(ecid),
+        false,
+        "POST",
+        payload,
+        true
+    );
+
+    return getExistingRequestsResponse;
+};
+
+export const getProducts = async (ecid): Promise<any> => {
+    const getProductsData: any = await apiCall(
+        `${kycProxy}/client/product/warnings?ecid=${ecid}`,
+        mockGetProducts,
+        false
+    );
+    return getProductsData;
+};
+
+export const getForm = async (formId): Promise<any> => {
+    return getFormById(formId).data;
+};
+
+export const sendApplication = async (payload): Promise<any> => {
+    const apiUrl = getV2OnboardingFeatureFlag() ? `${kycProxy}/internal/onboarding` : `${platformProxy}/createProfile`;
+
+    const sendApplicationResponse: any = await apiCall(
+        apiUrl,
+        mockGetCompanyOverview(payload),
+        false,
+        "POST",
+        payload,
+        true
+    );
+
+    return sendApplicationResponse;
+};
+
+export const getRequestDetails = async (kycId: string) => {
+    const response = await apiCall(
+        `${kycProxy}/cmlcard/${kycId}/details`,
+        mockGetRequestDetails,
+        false,
+        "GET",
+        undefined,
+        true
+    );
+    return response;
+};
+
+export const getCertifierDetails = async (kycId: string) => {
+    const response = await apiCall(
+        `${kycProxy}/cmlcard/${kycId}/certifier-details`,
+        mockGetCertifierDetails,
+        false,
+        "GET",
+        undefined,
+        true
+    );
+    return response;
+};
