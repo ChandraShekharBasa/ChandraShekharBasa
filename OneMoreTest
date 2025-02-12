@@ -1,6 +1,1 @@
-@Entity
-@Getter
-@Setter
-@Table(name="REQUEST_RELATIONS")
-public class RequestRelationsEntity extends KYCAudit {
-}
+
